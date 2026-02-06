@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@csound/browser": "7.0.0-beta20",
     "@generative-ambient/engine": "workspace:*",
     "next": "^15.3.2",
     "react": "^19.1.0",
