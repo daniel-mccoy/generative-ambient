@@ -23,7 +23,7 @@
 ;======================================================
 
 sr = 44100
-ksmps = 32
+ksmps = 64
 nchnls = 2
 0dbfs = 1
 
@@ -65,23 +65,15 @@ instr 100
       k_ridx   random 0, 7.99
       k_semi   table  int(k_ridx), 2    ; gi_roots
 
-      ; Octave: 50% A2 range, 30% octave up, 20% octave down
-      k_oroll  random 0, 1
-      if k_oroll < 0.5 then
-        k_oct = 0
-      elseif k_oroll < 0.8 then
-        k_oct = 12
-      else
-        k_oct = -12
-      endif
-
-      k_freq   = 65.41 * semitone(k_semi + k_oct)   ; C2
+      ; Constrained to C2–C3 range (leave room for bass below)
+      k_freq   = 65.41 * semitone(k_semi)            ; C2 base
+      k_freq   limit k_freq, 65.41, 130.81           ; C2–C3
 
       ; Duration: 30–60s (longer voices = fewer audible transitions)
       k_dur    random 30, 60
 
       ; Amplitude: quieter voices when more are active
-      k_amp    random 0.15, 0.28
+      k_amp    random 0.10, 0.18
       k_amp    = k_amp / (1 + k_voices * 0.3)
 
       ; Spawn
@@ -326,8 +318,8 @@ instr 2
   a_filt   butterlp a_filt, k_cutoff
 
   ; ===== OUTPUT =====
-  ; Volume: velocity × 40% — pluck sits back in the mix
-  i_vol    = i_vel * 0.4
+  ; Volume: velocity × 18% — sits back, headroom for 8 voices summing
+  i_vol    = i_vel * 0.18
 
   ; Stereo pan using sqrt pan law
   i_panL   = sqrt(1 - i_pan)

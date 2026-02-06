@@ -25,12 +25,13 @@ void main() {
 `;
 
 // Frequency band bin ranges (at 44100 Hz, fftSize=2048, each bin ≈ 21.5 Hz)
+// Tuned for dark, filtered voices: drone (C2-C3) + pluck (C2-C5, 24dB LP @ 313-2500 Hz)
 const BASS_LOW = 1;
-const BASS_HIGH = 14; // ~20-300 Hz
-const MID_LOW = 14;
-const MID_HIGH = 93; // ~300-2000 Hz
-const HIGH_LOW = 93;
-const HIGH_HIGH = 558; // ~2000-12000 Hz
+const BASS_HIGH = 6; // ~20-130 Hz — drone fundamentals
+const MID_LOW = 6;
+const MID_HIGH = 28; // ~130-600 Hz — drone harmonics + pluck fundamentals
+const HIGH_LOW = 28;
+const HIGH_HIGH = 116; // ~600-2500 Hz — pluck filter sweep + upper harmonics
 
 function averageBand(data: Uint8Array<ArrayBuffer>, lo: number, hi: number): number {
   let sum = 0;

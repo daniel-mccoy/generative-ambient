@@ -71,20 +71,20 @@ void main() {
     float pattern = mix(pattern2, pattern1, blend);
 
     // Hue shifts with mid frequencies
-    vec3 color = palette(pattern + radius * 0.3 + u_time * 0.05, u_mid * 2.0);
+    vec3 color = palette(pattern + radius * 0.3 + u_time * 0.05, u_mid * 0.8);
 
     // Fixed vignette (no audio)
     float vignette = 1.0 - smoothstep(0.4, 1.0, radius);
     color *= vignette;
 
     // Contrast shifts with bass
-    float contrast = 1.0 + u_bass * 0.8;
+    float contrast = 1.0 + u_bass * 0.3;
     color = mix(vec3(0.5), color, contrast);
 
     // Highs pulse the brightest areas
     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
     float highlightMask = smoothstep(0.4, 0.7, luminance);
-    color += highlightMask * u_high * 1.5;
+    color += highlightMask * u_high * 0.5;
 
     // Deepen colors
     color = pow(color, vec3(1.2));
