@@ -10,6 +10,7 @@ const SHADER_FILES = [
 ];
 
 const CSD_FILES = [
+  { name: "band_test.csd", label: "Band Test (Bass→Mid→High→All)" },
   { name: "cascade_harmonics.csd", label: "Cascade Harmonics + Reverb" },
   { name: "fm_bells.csd", label: "FM Bells" },
   { name: "test.csd", label: "220 Hz Sine (2s)" },
