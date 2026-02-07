@@ -11,6 +11,15 @@ uniform float u_bass;
 uniform float u_mid;
 uniform float u_high;
 
+// Per-instrument Csound channels (polled via getControlChannel)
+uniform float u_bass_rms;     // Bass drone RMS (~0-0.5)
+uniform float u_bass_cutoff;  // Bass drone filter cutoff (0-1)
+uniform float u_pad_rms;      // Drone pad RMS (~0-0.3)
+uniform float u_pad_pulse;    // Drone pad envelope (0-1)
+uniform float u_swarm_rms;    // Swarm pad RMS (~0-0.3)
+uniform float u_swarm_lfo;    // Swarm pad glacial LFO (0-1)
+uniform float u_pluck_rms;    // Pluck transient RMS (~0-0.2)
+
 const float TAU = 6.28318;
 const float segments = 6.0;
 
@@ -35,8 +44,8 @@ float getPattern(vec2 fuv, float zr, float drift, float detail) {
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
 
-    // Steady rotation (no audio)
-    float rotation = u_time * 0.1;
+    // Rotation: steady base + swarm_lfo glacial drift
+    float rotation = u_time * (0.1 + u_swarm_lfo * 0.06);
     uv = mat2(cos(rotation), -sin(rotation),
               sin(rotation), cos(rotation)) * uv;
 
@@ -48,8 +57,8 @@ void main() {
     angle = mod(angle, segmentAngle);
     angle = min(angle, segmentAngle - angle);
 
-    // Steady zoom (no audio)
-    float zoomSpeed = 0.25;
+    // Zoom: steady base + bass_rms swells
+    float zoomSpeed = 0.25 + u_bass_rms * 0.4;
     float logRadius = log2(radius + 0.001) - u_time * zoomSpeed;
 
     // Two-layer crossfade for seamless zoom
@@ -63,28 +72,33 @@ void main() {
     vec2 foldedUV2 = vec2(cos(angle), sin(angle)) * zoomRadius2;
 
     float drift = u_time * 0.2;
-    float detail = 0.0;  // No detail modulation
+    // pluck_rms → detail flash on transients, swarm_rms → steady shimmer
+    float detail = u_pluck_rms * 3.0 + u_swarm_rms * 3.0;
     float pattern1 = getPattern(foldedUV1, zoomRadius1, drift, detail);
     float pattern2 = getPattern(foldedUV2, zoomRadius2, drift, detail);
 
     float blend = smoothstep(0.0, 0.5, f1) * smoothstep(1.0, 0.5, f1);
     float pattern = mix(pattern2, pattern1, blend);
 
-    // Hue shifts with mid frequencies
-    vec3 color = palette(pattern + radius * 0.3 + u_time * 0.05, u_mid * 0.8);
+    // Hue shifts with mid frequencies + bass_cutoff warmth + swarm_lfo drift
+    vec3 color = palette(pattern + radius * 0.3 + u_time * 0.05, u_mid * 0.8 + u_bass_cutoff * 0.5 + u_swarm_lfo * 0.3);
 
-    // Fixed vignette (no audio)
-    float vignette = 1.0 - smoothstep(0.4, 1.0, radius);
+    // Vignette: pad_pulse breathes the visible area open/closed
+    float vignetteOuter = 1.0 + u_pad_pulse * 0.35;
+    float vignette = 1.0 - smoothstep(0.4, vignetteOuter, radius);
     color *= vignette;
 
-    // Contrast shifts with bass
-    float contrast = 1.0 + u_bass * 0.3;
+    // Contrast: bass FFT + bass_rms for deeper punch
+    float contrast = 1.0 + u_bass * 0.3 + u_bass_rms * 0.6;
     color = mix(vec3(0.5), color, contrast);
 
-    // Highs pulse the brightest areas
+    // pad_rms → ambient brightness lift
+    color += u_pad_rms * 0.4;
+
+    // Highs + pluck_rms pulse the brightest areas
     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
     float highlightMask = smoothstep(0.4, 0.7, luminance);
-    color += highlightMask * u_high * 0.5;
+    color += highlightMask * (u_high * 0.5 + u_pluck_rms * 1.5);
 
     // Deepen colors
     color = pow(color, vec3(1.2));

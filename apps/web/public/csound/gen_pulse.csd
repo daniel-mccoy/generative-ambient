@@ -48,6 +48,13 @@ ga_rvb_R init 0
 ga_dly_L init 0
 ga_dly_R init 0
 
+; Per-instrument analysis accumulators (polyphonic → max across voices)
+gk_pad_rms   init 0
+gk_pad_pulse init 0
+gk_swarm_rms init 0
+gk_swarm_lfo init 0
+gk_pluck_rms init 0
+
 ;------------------------------------------------------
 ; CONDUCTOR — spawns gen_pulse voices over time
 ;------------------------------------------------------
@@ -208,6 +215,11 @@ instr 1
   a_out    = (a_outA + a_outB) * i_amp * k_fade
   outs     a_out * 0.6, a_out * 0.4
 
+  ; Per-instrument analysis (accumulate max across overlapping voices)
+  k_rms    rms    a_out
+  gk_pad_rms   max gk_pad_rms, k_rms
+  gk_pad_pulse max gk_pad_pulse, k_envA
+
   ; Delay send
   ga_dly_L = ga_dly_L + a_out * 0.35
   ga_dly_R = ga_dly_R + a_out * 0.35
@@ -338,6 +350,10 @@ instr 2
   a_outR   = a_out * i_panR
 
   outs     a_outL, a_outR
+
+  ; Per-instrument analysis (short integration for transient tracking)
+  k_rms    rms    a_out, 20
+  gk_pluck_rms max gk_pluck_rms, k_rms
 
   ; Send to shared effects (high delay send — first echo nearly as loud as dry)
   ga_dly_L = ga_dly_L + a_outL * 0.9
@@ -481,6 +497,11 @@ instr 4
 
   outs     a_out * 0.5, a_out * 0.5
 
+  ; Per-instrument analysis (accumulate max across overlapping voices)
+  k_rms    rms    a_out
+  gk_swarm_rms max gk_swarm_rms, k_rms
+  gk_swarm_lfo max gk_swarm_lfo, k_lfo1_fx
+
   ; Moderate delay send — pad echoes add width
   ga_dly_L = ga_dly_L + a_out * 0.25
   ga_dly_R = ga_dly_R + a_out * 0.25
@@ -549,12 +570,52 @@ instr 3
   ; Slight stereo spread (Spread→Pan 50%, subtle for bass)
   outs     a_out * 0.55, a_out * 0.45
 
+  ; Per-instrument analysis (single instance — write channels directly)
+  k_rms    rms    a_out
+  k_rms    port   k_rms, 0.05
+  chnset   k_rms, "bass_rms"
+  ; Normalize cutoff to 0–1 range for shader use
+  k_cut_n  = (k_cutoff - 140) / (800 - 140)
+  k_cut_n  limit k_cut_n, 0, 1
+  k_cut_n  port   k_cut_n, 0.05
+  chnset   k_cut_n, "bass_cutoff"
+
   ; Low delay send — sub-bass in ping-pong delay = mud
   ga_dly_L = ga_dly_L + a_out * 0.15
   ga_dly_R = ga_dly_R + a_out * 0.15
   ; Reverb send — warmth and presence
   ga_rvb_L = ga_rvb_L + a_out * 0.4
   ga_rvb_R = ga_rvb_R + a_out * 0.4
+
+endin
+
+;------------------------------------------------------
+; CHANNEL WRITER — smooths polyphonic accumulators
+; and writes to named channels for JS polling.
+; Runs after voices (1-4) but before effects (98-99).
+;------------------------------------------------------
+instr 97
+
+  ; Smooth accumulated values (port ~50ms for gentle transitions)
+  k_pr     port   gk_pad_rms, 0.05
+  k_pp     port   gk_pad_pulse, 0.05
+  k_sr     port   gk_swarm_rms, 0.05
+  k_sl     port   gk_swarm_lfo, 0.05
+  k_plr    port   gk_pluck_rms, 0.02     ; shorter for transient response
+
+  ; Write to named channels
+  chnset   k_pr,  "pad_rms"
+  chnset   k_pp,  "pad_pulse"
+  chnset   k_sr,  "swarm_rms"
+  chnset   k_sl,  "swarm_lfo"
+  chnset   k_plr, "pluck_rms"
+
+  ; Reset accumulators for next k-cycle
+  gk_pad_rms   = 0
+  gk_pad_pulse = 0
+  gk_swarm_rms = 0
+  gk_swarm_lfo = 0
+  gk_pluck_rms = 0
 
 endin
 
@@ -612,6 +673,7 @@ i100 0 99999       ; drone pad conductor
 i101 0 99999       ; pluck sequence conductor
 i102 0 99999       ; swarm pad conductor
 i3   0 99999 32.70 0.60  ; bass drone at C1 (32.7 Hz)
+i97  0 99999       ; channel writer (after voices, before effects)
 i98  0 99999       ; ping-pong delay
 i99  0 99999       ; reverb
 </CsScore>

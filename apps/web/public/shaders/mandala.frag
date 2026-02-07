@@ -15,6 +15,15 @@ uniform float u_bass;
 uniform float u_mid;
 uniform float u_high;
 
+// Per-instrument Csound channels (polled via getControlChannel)
+uniform float u_bass_rms;     // Bass drone RMS (~0-0.5)
+uniform float u_bass_cutoff;  // Bass drone filter cutoff (0-1)
+uniform float u_pad_rms;      // Drone pad RMS (~0-0.3)
+uniform float u_pad_pulse;    // Drone pad envelope (0-1)
+uniform float u_swarm_rms;    // Swarm pad RMS (~0-0.3)
+uniform float u_swarm_lfo;    // Swarm pad glacial LFO (0-1)
+uniform float u_pluck_rms;    // Pluck transient RMS (~0-0.2)
+
 #define PI 3.14159265
 #define TAU 6.28318531
 
@@ -61,9 +70,11 @@ vec3 gradient(float t) {
     vec3 c3 = hexToRgb(0xfb7b6b);
     vec3 c4 = hexToRgb(0xe7d39f);
 
-    // Slow time-based color drift, gently biased by mid frequencies
+    // Slow time-based color drift, biased by mid + per-instrument channels
     float drift = sin(u_time * 0.03) * 0.08;
-    float pos = clamp(t + drift + u_mid * 0.06, 0.0, 1.0);
+    // bass_cutoff → palette warmth (open filter = warmer tones)
+    // swarm_lfo → glacial hue cycling through palette
+    float pos = clamp(t + drift + u_mid * 0.06 + u_bass_cutoff * 0.15 + u_swarm_lfo * 0.12, 0.0, 1.0);
 
     if (pos < 0.25) return iLerp(c0, c1, pos / 0.25);
     if (pos < 0.5)  return iLerp(c1, c2, (pos - 0.25) / 0.25);
@@ -94,11 +105,11 @@ float fbm(vec2 p) {
     float sum = 0.0;
     float freq = 1.0;
     float amp = 0.5;
-    // Always run 4 octaves, but smoothly fade in the upper two with u_high
+    // Always run 4 octaves; swarm_rms fades in upper octaves for shimmer detail
     for (int i = 0; i < 4; i++) {
         float octaveWeight = 1.0;
-        if (i == 2) octaveWeight = 0.5;
-        if (i == 3) octaveWeight = 0.15;
+        if (i == 2) octaveWeight = 0.5 + u_swarm_rms * 2.0;
+        if (i == 3) octaveWeight = 0.15 + u_swarm_rms * 1.5;
         sum += amp * octaveWeight * (1.0 - 2.0 * iqNoise(vec3(p * freq, 0.0)));
         freq *= 2.0;
         amp *= 0.5;
@@ -114,8 +125,8 @@ float pattern(in vec2 p, out vec2 q, out vec2 r) {
     q.x = fbm(p + vec2(0.0 + time, 0.0 - time));
     q.y = fbm(p + vec2(5.2 - time, 1.3));
 
-    // Audio: bass gently increases domain warp intensity
-    float warpStrength = 4.0 + u_bass * 0.15;
+    // Audio: bass + bass_rms increase domain warp, pluck_rms adds transient ripple
+    float warpStrength = 4.0 + u_bass * 0.15 + u_bass_rms * 1.5 + u_pluck_rms * 1.0;
 
     r.x = fbm(p + warpStrength * q + vec2(1.7, 9.2));
     r.y = fbm(p + warpStrength * q + vec2(8.3, 2.8));
@@ -158,8 +169,16 @@ void main() {
 
     vec3 col = gradient(n);
 
-    // Audio: bass gently brightens
-    col *= 1.0 + u_bass * 0.2;
+    // Audio: bass + bass_rms gently brighten
+    col *= 1.0 + u_bass * 0.2 + u_bass_rms * 0.5;
+
+    // pad_rms → ambient brightness lift
+    col += u_pad_rms * 0.3;
+
+    // pluck_rms → bright highlight flash on pattern peaks
+    float luminance = dot(col, vec3(0.299, 0.587, 0.114));
+    float highlightMask = smoothstep(0.3, 0.6, luminance);
+    col += highlightMask * u_pluck_rms * 1.0;
 
     gl_FragColor = vec4(col, 1.0);
 }

@@ -16,6 +16,15 @@ uniform float u_bass;
 uniform float u_mid;
 uniform float u_high;
 
+// Per-instrument Csound channels (polled via getControlChannel)
+uniform float u_bass_rms;     // Bass drone RMS (~0-0.5) — slow bloom/distortion
+uniform float u_bass_cutoff;  // Bass drone filter cutoff (0-1) — color warmth
+uniform float u_pad_rms;      // Drone pad RMS (~0-0.3) — background brightness
+uniform float u_pad_pulse;    // Drone pad envelope (0-1) — breathing brightness
+uniform float u_swarm_rms;    // Swarm pad RMS (~0-0.3) — shimmer intensity
+uniform float u_swarm_lfo;    // Swarm pad glacial LFO (0-1) — slow color drift
+uniform float u_pluck_rms;    // Pluck transient RMS (~0-0.2) — transient sparkle
+
 #define PI 3.1415927
 #define TWO_PI 6.283185
 
@@ -40,6 +49,7 @@ uniform float u_high;
 #define SIZE_MOD 1.05
 #define ALPHA_MOD 0.9
 #define LAYERS_COUNT 12
+#define MAX_NOISE_LAYERS 6
 
 // --- Hash functions ---
 
@@ -101,7 +111,8 @@ float layeredNoise1_2(in vec2 uv, in float sizeMod, in float alphaMod, in int la
     vec2 offset;
     // Audio: high frequencies add gentle drift variation
     float movementSpeed = MOVEMENT_SPEED + u_high * 0.05;
-    for (int i = 0; i < layers; i++) {
+    for (int i = 0; i < MAX_NOISE_LAYERS; i++) {
+        if (i >= layers) break;
         offset += hash2_2(vec2(alpha, size)) * 10.0;
         noise += noise1_2(uv * size + u_time * animation * 8.0 * MOVEMENT_DIRECTION * movementSpeed + offset) * alpha;
         alpha *= alphaMod;
@@ -153,7 +164,8 @@ vec3 fireParticles(in vec2 uv, in vec2 originalUV) {
     tempUV += -(noise2_2(uv * 3.0 + u_time) - 0.5) * 0.07;
 
     // Audio: mid frequencies gently expand particle size
-    float particleSize = PARTICLE_SIZE + u_mid * 0.003;
+    // pluck_rms → particle size pop on transients, swarm_rms → shimmer size
+    float particleSize = PARTICLE_SIZE + u_mid * 0.003 + u_pluck_rms * 0.02 + u_swarm_rms * 0.02;
 
     // Sparks sdf
     dist = length(rotate(tempUV - pointUV, 0.7) * randomAround2_2(PARTICLE_SCALE, PARTICLE_SCALE_VAR, rootUV));
@@ -162,18 +174,24 @@ vec3 fireParticles(in vec2 uv, in vec2 originalUV) {
     distBloom = length(rotate(tempUV - pointUV, 0.7) * randomAround2_2(PARTICLE_BLOOM_SCALE, PARTICLE_BLOOM_SCALE_VAR, rootUV));
 
     // Audio: high frequencies add subtle sparkle to spark brightness
-    vec3 sparkColor = SPARK_COLOR * (0.8 + u_high * 0.4);
+    // pluck_rms → transient spark flash (bright flicker on pluck attacks)
+    vec3 sparkColor = SPARK_COLOR * (0.8 + u_high * 0.4 + u_pluck_rms * 4.0);
 
     // Audio: mid-frequency color warmth shift
     // Positive u_mid pushes toward warmer (more red/orange), low u_mid cools slightly
     vec3 warmShift = vec3(0.15, -0.05, -0.1) * u_mid;
+    // bass_cutoff → color temperature (open filter = warmer, closed = cooler blue)
+    warmShift += vec3(0.35, -0.1, -0.25) * u_bass_cutoff;
+    // swarm_lfo → slow hue drift (glacial color cycling via complementary shift)
+    warmShift += vec3(-0.2, 0.15, 0.25) * u_swarm_lfo;
     sparkColor += warmShift;
 
     // Add sparks
     particles += (1.0 - smoothstep(particleSize * 0.6, particleSize * 3.0, dist)) * sparkColor;
 
     // Audio: bass gently increases bloom glow
-    vec3 bloomColor = (BLOOM_COLOR + warmShift * 0.5) * (0.5 + u_bass * 0.6);
+    // pad_rms → background brightness, swarm_rms → shimmer intensity
+    vec3 bloomColor = (BLOOM_COLOR + warmShift * 0.5) * (0.5 + u_bass * 0.6 + u_pad_rms * 4.0 + u_swarm_rms * 5.0);
 
     // Add bloom
     particles += pow((1.0 - smoothstep(0.0, particleSize * 6.0, distBloom)) * 1.0, 3.0) * bloomColor;
@@ -202,7 +220,7 @@ vec3 layeredParticles(in vec2 uv, in float sizeMod, in float alphaMod, in int la
     // Audio: high frequencies add gentle drift variation
     float movementSpeed = MOVEMENT_SPEED + u_high * 0.05;
 
-    for (int i = 0; i < layers; i++) {
+    for (int i = 0; i < LAYERS_COUNT; i++) {
         // Particle noise movement
         noiseOffset = (noise2_2(uv * size * 2.0 + 0.5) - 0.5) * 0.15;
 
@@ -210,7 +228,7 @@ vec3 layeredParticles(in vec2 uv, in float sizeMod, in float alphaMod, in int la
         bokehUV = (uv * size + u_time * MOVEMENT_DIRECTION * movementSpeed) + offset + noiseOffset;
 
         // Adding particles — if there is more smoke, remove smaller particles
-        particles += fireParticles(bokehUV, uv) * alpha * (1.0 - smoothstep(0.0, 1.0, smoke) * (float(i) / float(layers)));
+        particles += fireParticles(bokehUV, uv) * alpha * (1.0 - smoothstep(0.0, 1.0, smoke) * (float(i) / float(LAYERS_COUNT)));
 
         // Moving uv origin to avoid generating the same particles
         offset += hash2_2(vec2(alpha, alpha)) * 10.0;
@@ -227,7 +245,10 @@ vec3 layeredParticles(in vec2 uv, in float sizeMod, in float alphaMod, in int la
 void main() {
     vec2 uv = (2.0 * gl_FragCoord.xy - u_resolution.xy) / u_resolution.x;
 
-    float vignette = 1.0 - smoothstep(0.4, 1.4, length(uv + vec2(0.0, 0.3)));
+    // Pad pulse → vignette breathing (softens/opens edges with pad envelope)
+    float vignetteEdge = 1.4 + u_pad_pulse * 0.6;
+    float vignetteInner = 0.4 - u_pad_pulse * 0.15;
+    float vignette = 1.0 - smoothstep(vignetteInner, vignetteEdge, length(uv + vec2(0.0, 0.3)));
 
     uv *= 1.8;
 
@@ -238,7 +259,9 @@ void main() {
     smokeIntensity *= pow(1.0 - smoothstep(-1.0, 1.6, uv.y), 2.0);
 
     // Audio: bass swells thicken the atmosphere
-    vec3 smoke = smokeIntensity * SMOKE_COLOR * 0.8 * vignette * (0.8 + u_bass * 0.5);
+    // bass_rms → bloom glow expansion (adds atmospheric density)
+    float bassBloom = 0.8 + u_bass * 0.5 + u_bass_rms * 3.0;
+    vec3 smoke = smokeIntensity * SMOKE_COLOR * 0.8 * vignette * bassBloom;
 
     // Cutting holes in smoke
     smoke *= pow(layeredNoise1_2(uv * 4.0 + u_time * 0.5 * MOVEMENT_DIRECTION * movementSpeed, 1.8, 0.5, 3, 0.2), 2.0) * 1.5;

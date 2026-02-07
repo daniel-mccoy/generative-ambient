@@ -62,6 +62,20 @@ export default function TestCombinedPage() {
   const uMidRef = useRef<WebGLUniformLocation | null>(null);
   const uHighRef = useRef<WebGLUniformLocation | null>(null);
 
+  // Per-instrument Csound channel values (polled non-blocking)
+  const CSOUND_CHANNELS = [
+    "bass_rms", "bass_cutoff", "pad_rms", "pad_pulse",
+    "swarm_rms", "swarm_lfo", "pluck_rms",
+  ] as const;
+  const channelRefs = useRef<Record<string, number>>(
+    Object.fromEntries(CSOUND_CHANNELS.map((n) => [n, 0])),
+  );
+
+  // Uniform locations for per-instrument channels
+  const uChannelRefs = useRef<Record<string, WebGLUniformLocation | null>>(
+    Object.fromEntries(CSOUND_CHANNELS.map((n) => [n, null])),
+  );
+
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const csoundRef = useRef<any>(null);
 
@@ -151,6 +165,11 @@ export default function TestCombinedPage() {
       uMidRef.current = gl.getUniformLocation(program, "u_mid");
       uHighRef.current = gl.getUniformLocation(program, "u_high");
 
+      // Per-instrument channel uniform locations
+      for (const name of CSOUND_CHANNELS) {
+        uChannelRefs.current[name] = gl.getUniformLocation(program, `u_${name}`);
+      }
+
       startTimeRef.current = performance.now() / 1000;
 
       const canvas = canvasRef.current!;
@@ -182,10 +201,27 @@ export default function TestCombinedPage() {
           highRef.current += (rawHigh - highRef.current) * SMOOTH;
         }
 
+        // Non-blocking poll of per-instrument Csound channels
+        const cs = csoundRef.current;
+        if (cs) {
+          Promise.all(CSOUND_CHANNELS.map((name) => cs.getControlChannel(name)))
+            .then((values: number[]) => {
+              for (let i = 0; i < CSOUND_CHANNELS.length; i++) {
+                channelRefs.current[CSOUND_CHANNELS[i]] = values[i] || 0;
+              }
+            })
+            .catch(() => {
+              // Ignore errors (e.g. after stop)
+            });
+        }
+
         // Update debug display via direct DOM manipulation (no React re-render)
         if (debugRef.current) {
+          const ch = channelRefs.current;
           debugRef.current.textContent =
-            `Bass: ${bassRef.current.toFixed(3)}  Mid: ${midRef.current.toFixed(3)}  High: ${highRef.current.toFixed(3)}`;
+            `Bass: ${bassRef.current.toFixed(3)}  Mid: ${midRef.current.toFixed(3)}  High: ${highRef.current.toFixed(3)}\n` +
+            `bass_rms: ${ch.bass_rms.toFixed(3)}  bass_cut: ${ch.bass_cutoff.toFixed(3)}  pad_rms: ${ch.pad_rms.toFixed(3)}  pad_pulse: ${ch.pad_pulse.toFixed(3)}\n` +
+            `swarm_rms: ${ch.swarm_rms.toFixed(3)}  swarm_lfo: ${ch.swarm_lfo.toFixed(3)}  pluck_rms: ${ch.pluck_rms.toFixed(3)}`;
         }
 
         const time = performance.now() / 1000 - startTimeRef.current;
@@ -198,6 +234,11 @@ export default function TestCombinedPage() {
         gl.uniform1f(uBassRef.current, bassRef.current);
         gl.uniform1f(uMidRef.current, midRef.current);
         gl.uniform1f(uHighRef.current, highRef.current);
+
+        // Set per-instrument channel uniforms (1-2 frame lag, imperceptible)
+        for (const name of CSOUND_CHANNELS) {
+          gl.uniform1f(uChannelRefs.current[name], channelRefs.current[name]);
+        }
 
         gl.drawArrays(gl.TRIANGLES, 0, 6);
         rafRef.current = requestAnimationFrame(render);
@@ -355,6 +396,9 @@ export default function TestCombinedPage() {
     bassRef.current = 0;
     midRef.current = 0;
     highRef.current = 0;
+    for (const name of CSOUND_CHANNELS) {
+      channelRefs.current[name] = 0;
+    }
 
     try {
       setStatus("Stopping...");
@@ -461,6 +505,7 @@ export default function TestCombinedPage() {
           <div
             ref={debugRef}
             className="text-xs text-neutral-500 font-mono"
+            style={{ whiteSpace: "pre" }}
           >
             Bass: 0.000  Mid: 0.000  High: 0.000
           </div>
