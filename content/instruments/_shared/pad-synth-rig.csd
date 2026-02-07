@@ -383,7 +383,7 @@ instr 1
 
   ; --- HOLD + ENVELOPE LOGIC ---
   ; xtratim keeps the note instance alive long enough for hold + release
-  xtratim 300
+  xtratim 3600    ; 1 hour max hold time
 
   k_hold chnget "hold"
   k_rel release           ; 1 when MIDI note-off received
