@@ -7,18 +7,26 @@
 ;======================================================
 ; GEN PULSE — Generative Version
 ;
-; Two layers: drone + pluck sequence
+; Four layers: bass drone + drone pad + swarm pad + pluck
 ;
-; Layer 1 (Drone): Conductor (100) spawns overlapping
+; Layer 1 (Bass Drone): Always-on sub-bass (3) at C1
+; with resonant moogladder filter and wander LFO for
+; slow organic movement. Mostly felt, not heard.
+;
+; Layer 2 (Drone Pad): Conductor (100) spawns overlapping
 ; gen_pulse voices (1) with looping AD envelopes,
-; waveform morphing, and filter modulation.
+; waveform morphing, and filter modulation. C2–C3.
 ;
-; Layer 2 (Pluck): Sequence conductor (101) fires
+; Layer 3 (Swarm Pad): Conductor (102) spawns swarm
+; sine + shaped osc voices (4) with slow ADSR and
+; glacial LFO evolution (0.01 Hz). C3–C4.
+;
+; Layer 4 (Pluck): Sequence conductor (101) fires
 ; probabilistic eighth-note plucks (2) with velocity-
 ; driven filter sweeps across C minor pentatonic.
 ;
 ; Signal chain:
-;   conductors (100,101) → voices (1,2) →
+;   conductors (100,101,102) → voices (1,2,3,4) →
 ;   ping-pong delay (98) → reverb (99)
 ;======================================================
 
@@ -340,6 +348,217 @@ instr 2
 endin
 
 ;------------------------------------------------------
+; PAD CONDUCTOR — spawns swarm pad voices
+;------------------------------------------------------
+instr 102
+
+  ; Slow spawning — pads overlap with long envelopes
+  k_timer  init   6                      ; first voice after 6s
+  k_timer  -= 1/kr
+
+  if k_timer <= 0 then
+
+    k_voices active 4
+    if k_voices < 3 then
+
+      ; Pitch: C3–C4 from pentatonic roots
+      k_ridx   random 0, 7.99
+      k_semi   table  int(k_ridx), 2    ; gi_roots (weighted)
+      k_freq   = 130.81 * semitone(k_semi)   ; C3 base
+      k_freq   limit k_freq, 130.81, 261.63  ; C3–C4
+
+      ; Duration: 35–65s (long enough for slow ADSR)
+      k_dur    random 35, 65
+
+      ; Amplitude: quieter when more voices active
+      k_amp    random 0.22, 0.35
+      k_amp    = k_amp / (1 + k_voices * 0.25)
+
+      event    "i", 4, 0, k_dur, k_freq, k_amp
+
+    endif
+
+    ; Reset timer: 15–30s between spawns
+    k_timer  random 15, 30
+
+  endif
+
+endin
+
+;------------------------------------------------------
+; SWARM PAD — Detuned sine cluster + shaped oscillator
+;
+; Osc A: Swarm Sine (7 detuned sines, Motion 34.1,
+; Spacing 61.1) — shimmery ethereal texture.
+; Osc B: Basic Shapes (Shape 52.4%) — adds body.
+; Very slow LFO (0.01 Hz) evolves shape and filter.
+;
+; Filter A: SVF 12dB LP at 3.52 kHz (on swarm)
+; Filter B: Membrane Resonator at 8.49 kHz (on shapes)
+;
+; Amp: A 4.47s, D 6.10s, S -5.5dB, R 1.69s
+;
+; p4 = frequency (Hz)
+; p5 = amplitude (0–1)
+;------------------------------------------------------
+instr 4
+
+  i_freq = p4
+  i_amp  = p5
+
+  ; ===== LFO 1: Glacial evolution (0.01 Hz = 100s period) =====
+  ; Basic Shapes with Shape 46, Fold 100 — complex slowly-changing modulator
+  ; Approximate: slow triangle folded through sine for rich shape
+  k_phs    phasor 0.01
+  k_tri    = 1 - 4 * abs(k_phs - 0.5)           ; triangle -1..1
+  k_lfo1   = sin(k_tri * $M_PI)                   ; fold creates complex motion
+
+  ; LFO 1 FX: Skew Uni + Fade In, Shape 12.7%, Ramp 24.6s
+  k_lfo1_fade linseg 0, 24.6, 1, p3 - 24.6, 1
+  k_lfo1_fx = (k_lfo1 * 0.5 + 0.5) * k_lfo1_fade ; skew unipolar: 0..1
+
+  ; ===== SWARM SINE (Osc A) =====
+  ; 7 detuned sines — Spacing 61.1% (~6 cents), Motion 34.1%
+  ; Each voice drifts independently via randi
+  i_spr    = 0.0006                                ; ~1 cent per step
+
+  k_d1     randi  0.0008, 0.31
+  k_d2     randi  0.0008, 0.27
+  k_d3     randi  0.0008, 0.34
+  k_d4     randi  0.0008, 0.29
+  k_d5     randi  0.0008, 0.33
+  k_d6     randi  0.0008, 0.26
+  k_d7     randi  0.0008, 0.36
+
+  a_s1     oscili 1, i_freq * (1 - i_spr*3 + k_d1)
+  a_s2     oscili 1, i_freq * (1 - i_spr*2 + k_d2)
+  a_s3     oscili 1, i_freq * (1 - i_spr   + k_d3)
+  a_s4     oscili 1, i_freq * (1            + k_d4)
+  a_s5     oscili 1, i_freq * (1 + i_spr   + k_d5)
+  a_s6     oscili 1, i_freq * (1 + i_spr*2 + k_d6)
+  a_s7     oscili 1, i_freq * (1 + i_spr*3 + k_d7)
+
+  a_swarm  = (a_s1 + a_s2 + a_s3 + a_s4 + a_s5 + a_s6 + a_s7) / 7
+
+  ; ===== BASIC SHAPES (Osc B) =====
+  ; Shape 52.4% — slightly more square than saw
+  ; LFO 1 → Osc Macro 1 at 48%
+  a_saw    vco2   1, i_freq, 0
+  a_sqr    vco2   1, i_freq, 10, 0.5
+  k_shape  = 0.524 + k_lfo1_fx * 0.48
+  k_shape  limit  k_shape, 0, 1
+  a_oscB   = a_saw * (1 - k_shape) + a_sqr * k_shape
+
+  ; ===== FILTERS =====
+  ; Filter A: SVF 12dB LP at 3.52 kHz, Q 0 — gentle warmth on swarm
+  ; LFO 1 → Filter Freq at 47%
+  k_cutA   = 3520 + k_lfo1_fx * 0.47 * 3000
+  k_cutA   limit  k_cutA, 1200, 7000
+  a_filtA  butterlp a_swarm, k_cutA
+
+  ; Filter B: Membrane Resonator at 8.49 kHz — airy shimmer on shapes
+  ; Low Q (damped) + LP after to tame harmonics
+  a_filtB  mode   a_oscB, 8490, 2
+  a_filtB  butterlp a_filtB, 4000
+
+  ; ===== AMP ENVELOPE =====
+  ; A: 4.47s, D: 6.10s, S: -5.5 dB (0.53), R: 1.69s
+  i_atkA   = 4.47
+  i_decA   = 6.10
+  i_susLvl = 0.53
+  i_relA   = 1.69
+  i_susT   = p3 - i_atkA - i_decA - i_relA
+  i_susT   = (i_susT > 0.01) ? i_susT : 0.01
+  k_env    linseg 0, i_atkA, 1, i_decA, i_susLvl, i_susT, i_susLvl, i_relA, 0
+
+  ; ===== OUTPUT =====
+  ; Mix: swarm dominant (ethereal), shapes recessed (body)
+  a_mix    = (a_filtA * 0.75 + a_filtB * 0.25) * i_amp * k_env * 1.8
+
+  ; Safety fade in/out
+  k_fade   linseg 0, 3, 1, p3 - 8, 1, 5, 0
+  a_out    = a_mix * k_fade
+
+  outs     a_out * 0.5, a_out * 0.5
+
+  ; Moderate delay send — pad echoes add width
+  ga_dly_L = ga_dly_L + a_out * 0.25
+  ga_dly_R = ga_dly_R + a_out * 0.25
+  ; Heavy reverb send — lush wash
+  ga_rvb_L = ga_rvb_L + a_out * 0.5
+  ga_rvb_R = ga_rvb_R + a_out * 0.5
+
+endin
+
+;------------------------------------------------------
+; BASS DRONE — resonant sub-bass at C1
+;
+; Saw + square oscillators through moogladder 24dB/oct
+; LP at 280 Hz with high resonance (Q ~40) for growly
+; vowel-like character. Wander LFO modulates filter
+; cutoff and oscillator shape for slow organic movement.
+;
+; p4 = frequency (Hz)
+; p5 = amplitude (0–1)
+;------------------------------------------------------
+instr 3
+
+  i_freq = p4
+  i_amp  = p5
+
+  ; ===== WANDER LFO (Meld "Wander" mode at 0.21 Hz) =====
+  ; Two randi sources for compound smooth random motion
+  k_w1     randi  1, 0.21                 ; primary wander
+  k_w2     randi  0.5, 0.09              ; secondary drift (irrational ratio)
+  k_wander = (k_w1 + k_w2) / 1.5        ; roughly -1..1
+
+  ; LFO 1 FX: Attenuverter + Fade In
+  ; Scale 72.2%, Ramp 2.4s — gradually introduces wander
+  k_fade_in linseg 0, 2.4, 1, p3 - 2.4, 1
+  k_wander_fx = k_wander * k_fade_in * 0.722
+
+  ; ===== OSCILLATORS =====
+  ; Osc A: Saw (36.5%) + Square (63.5%) — shape blend
+  ; LFO 1 → Osc Macro 1 at 38% modulates shape ±30%
+  k_shape  = 0.635 + k_wander_fx * 0.47      ; wider timbral shift
+  k_shape  limit k_shape, 0, 1
+  a_saw_A  vco2   1, i_freq, 0            ; sawtooth
+  a_sqr_A  vco2   1, i_freq, 10, 0.5      ; square (50% duty)
+  a_osc_A  = a_saw_A * (1 - k_shape) + a_sqr_A * k_shape
+
+  ; Osc B: Pure sawtooth at same pitch
+  a_osc_B  vco2   1, i_freq, 0
+
+  ; Mix oscillators equally
+  a_osc    = (a_osc_A + a_osc_B) * 0.5
+
+  ; ===== FILTER: moogladder 24dB/oct LP =====
+  ; Base 350 Hz, resonance 0.55 — pronounced growl
+  ; LFO 1 → Filter Freq: ±400 Hz wander for audible sweeps
+  k_cutoff = 350 + k_wander_fx * 560
+  k_cutoff limit k_cutoff, 140, 800
+  a_filt   moogladder a_osc, k_cutoff, 0.72
+
+  ; ===== ENVELOPE: Simple fade in/out =====
+  ; 5s fade in, long sustain, 8s fade out
+  k_fade   linseg 0, 5, 1, p3 - 13, 1, 8, 0
+
+  ; ===== OUTPUT =====
+  a_out    = a_filt * i_amp * k_fade * 2.0
+
+  ; Slight stereo spread (Spread→Pan 50%, subtle for bass)
+  outs     a_out * 0.55, a_out * 0.45
+
+  ; Low delay send — sub-bass in ping-pong delay = mud
+  ga_dly_L = ga_dly_L + a_out * 0.15
+  ga_dly_R = ga_dly_R + a_out * 0.15
+  ; Reverb send — warmth and presence
+  ga_rvb_L = ga_rvb_L + a_out * 0.4
+  ga_rvb_R = ga_rvb_R + a_out * 0.4
+
+endin
+
+;------------------------------------------------------
 ; PING-PONG DELAY — dotted eighths at 80 BPM
 ;------------------------------------------------------
 instr 98
@@ -389,9 +608,11 @@ endin
 <CsScore>
 
 ; Run indefinitely — stop via UI button
-i100 0 99999
-i101 0 99999
-i98  0 99999
-i99  0 99999
+i100 0 99999       ; drone pad conductor
+i101 0 99999       ; pluck sequence conductor
+i102 0 99999       ; swarm pad conductor
+i3   0 99999 32.70 0.60  ; bass drone at C1 (32.7 Hz)
+i98  0 99999       ; ping-pong delay
+i99  0 99999       ; reverb
 </CsScore>
 </CsoundSynthesizer>

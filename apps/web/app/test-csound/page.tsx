@@ -6,6 +6,9 @@ const CSD_FILES = [
   { name: "test.csd", label: "220 Hz Sine (2s)" },
   { name: "fm_bells.csd", label: "FM Bells" },
   { name: "cascade_harmonics.csd", label: "Cascade Harmonics + Reverb" },
+  { name: "gen_pulse.csd", label: "Gen Pulse (full 4-layer)" },
+  { name: "bass_drone_solo.csd", label: "Bass Drone Solo" },
+  { name: "swarm_pad_solo.csd", label: "Swarm Pad Solo" },
 ];
 
 export default function TestCsoundPage() {
@@ -49,7 +52,7 @@ export default function TestCsoundPage() {
       });
 
       setStatus(`Fetching /csound/${selected}...`);
-      const res = await fetch(`/csound/${selected}`);
+      const res = await fetch(`/csound/${selected}?t=${Date.now()}`);
       if (!res.ok) {
         setStatus(`Error: Failed to fetch ${selected} (${res.status})`);
         return;
