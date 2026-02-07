@@ -2,7 +2,7 @@
 ; BASS DRONE — Resonant Sub-Bass
 ;
 ; Saw + square oscillators through moogladder 24dB/oct
-; LP at 280 Hz with high resonance (Q ~40) for growly
+; LP at 350 Hz with high resonance (0.72) for growly
 ; vowel-like character. Wander LFO (randi at 0.21 Hz)
 ; modulates filter cutoff and oscillator shape for slow
 ; organic movement.
@@ -10,8 +10,8 @@
 ; Based on Meld tutorial bass preset:
 ;   Osc A: Basic Shapes, Shape 63.5% (mostly square)
 ;   Osc B: Basic Shapes, Shape 0.0% (pure saw)
-;   Filter A: SVF 24dB, 280 Hz, Q 39.8
-;   LFO 1: Wander 0.21 Hz → Osc Macro 1 (38%), Filter Freq (27%)
+;   Filter A: SVF 24dB, 350 Hz, resonance 0.72
+;   LFO 1: Wander 0.21 Hz → Osc Macro 1 (47%), Filter Freq (±560 Hz)
 ;   LFO 1 FX: Attenuv + Fade In, Scale 72.2%, Ramp 2.4
 ;
 ; Requires:
@@ -40,8 +40,8 @@ instr bass_drone
 
   ; ========== OSCILLATORS ==========
   ; Osc A: Saw (36.5%) + Square (63.5%) — shape blend
-  ; LFO 1 → Osc Macro 1 at 38% modulates shape
-  k_shape  = 0.635 + k_wander_fx * 0.38 * 0.365   ; wander nudges shape ±14%
+  ; LFO 1 → Osc Macro 1 at 38% modulates shape ±30%
+  k_shape  = 0.635 + k_wander_fx * 0.47      ; wider timbral shift
   k_shape  limit k_shape, 0, 1
   a_saw_A  vco2   1, i_freq, 0            ; sawtooth
   a_sqr_A  vco2   1, i_freq, 10, 0.5      ; square (50% duty)
@@ -54,27 +54,27 @@ instr bass_drone
   a_osc    = (a_osc_A + a_osc_B) * 0.5
 
   ; ========== FILTER: moogladder 24dB/oct LP ==========
-  ; Base 280 Hz, resonance 0.4 (Q ~40)
-  ; LFO 1 → Filter Freq at 27%: ±200 Hz wander around base
-  k_cutoff = 280 + k_wander_fx * 0.27 * 740
-  k_cutoff limit k_cutoff, 120, 500
-  a_filt   moogladder a_osc, k_cutoff, 0.4
+  ; Base 350 Hz, resonance 0.72 — pronounced growl
+  ; LFO 1 → Filter Freq: ±400 Hz wander for audible sweeps
+  k_cutoff = 350 + k_wander_fx * 560
+  k_cutoff limit k_cutoff, 140, 800
+  a_filt   moogladder a_osc, k_cutoff, 0.72
 
   ; ========== ENVELOPE: Simple fade in/out ==========
   ; 5s fade in, long sustain, 8s fade out
   k_fade   linseg 0, 5, 1, p3 - 13, 1, 8, 0
 
   ; ========== OUTPUT ==========
-  a_out    = a_filt * i_amp * k_fade
+  a_out    = a_filt * i_amp * k_fade * 2.0
 
   ; Slight stereo spread (subtle for bass)
   outs     a_out * 0.55, a_out * 0.45
 
   ; Low delay send — sub-bass in ping-pong delay = mud
-  ga_dly_L = ga_dly_L + a_out * 0.1
-  ga_dly_R = ga_dly_R + a_out * 0.1
-  ; Moderate reverb send — warmth without blur
-  ga_rvb_L = ga_rvb_L + a_out * 0.25
-  ga_rvb_R = ga_rvb_R + a_out * 0.25
+  ga_dly_L = ga_dly_L + a_out * 0.15
+  ga_dly_R = ga_dly_R + a_out * 0.15
+  ; Reverb send — warmth and presence
+  ga_rvb_L = ga_rvb_L + a_out * 0.4
+  ga_rvb_R = ga_rvb_R + a_out * 0.4
 
 endin
