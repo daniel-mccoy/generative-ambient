@@ -142,11 +142,91 @@ Next.js App Router with route groups:
 
 Engine is a singleton managed via React context — initialized once, survives route changes.
 
+## Instrument Design Workflow (Cabbage → Content Pipeline)
+
+Instruments are designed interactively in Cabbage (Csound IDE with GUI controls), then extracted into reusable orchestra files for the generative engine.
+
+### Pipeline
+
+```
+1. DESIGN       content/instruments/{category}/{name}.csd   ← Cabbage prototype
+2. EXTRACT      content/instruments/{category}/{name}.orc   ← reusable orchestra
+3. DOCUMENT     content/instruments/{category}/{name}.md    ← AI pipeline docs
+4. INTEGRATE    content/pieces/{context}/{slug}/            ← use in compositions
+```
+
+### Step 1: Design in Cabbage
+
+Create a self-contained `.csd` with full Cabbage GUI. This is the sound design sandbox:
+
+- `<Cabbage>` section defines knobs, sliders, labels for every tweakable parameter
+- Use `chnget` to read all GUI parameters at k-rate
+- Include effects (reverb, delay, saturation) inline for complete sound evaluation
+- Use `-odac -d` in CsOptions (not `-n` which disables audio)
+- Score starts the instrument immediately: `i 1 0 [60*60*4]`
+
+The `.csd` stays in the repo as the sound design source of truth — always go back to Cabbage to tweak.
+
+### Step 2: Extract Orchestra
+
+Once the sound is dialed in, extract the core synthesis into a `.orc` file:
+
+- Strip `<Cabbage>` GUI section, `<CsOptions>`, and `<CsScore>`
+- Convert `chnget "param"` → p-fields (`p4`, `p5`, ...) for note-level parameters (frequency, amplitude, pan)
+- Keep `chnget "k_param"` for real-time control parameters that conductors will set via `chnset`
+- Remove self-contained effects — the `.orc` sends to shared effect buses (`ga_rvb_L`, `ga_dly_L`, etc.)
+- Add per-instrument analysis (`rms`, `chnset`) for shader uniform channels
+- UDOs (User Defined Opcodes) are encouraged for reusable synthesis blocks
+
+### Step 3: Document
+
+Write a `.md` file alongside the `.orc` with:
+
+- Instrument description and musical character
+- Parameter table: name, range, default, musical purpose
+- Channel outputs (analysis channels for shader bridge)
+- Compositional notes: what context it suits, how it layers with other instruments
+- These docs are consumed by the AI generation pipeline
+
+### Step 4: Integrate into Pieces
+
+Use the extracted `.orc` in piece orchestras:
+
+- Reference via `#include` or inline in the piece's `orchestra.orc`
+- Conductor instruments control parameters via `chnset` or p-fields on `event`
+- Share effects at piece level (reverb, delay as high-numbered instruments)
+- Add to piece's `params.json` for any UI-exposed controls
+
+### Csound 6 (Cabbage) vs WASM Compatibility
+
+| Issue | Cabbage (Csound 6.18) | Browser (WASM) |
+|-------|----------------------|----------------|
+| Opcodes in while loops | Stateful opcodes (`poscil`, `lfo`) don't maintain state — use `gbuzz`, `adsynt`, or unroll | Same limitation |
+| `i()` function | `i(kvar, 0)` syntax not available — capture at init with `ivar = i(kvar)` or use k-rate directly | May differ |
+| `^` power operator | K-rate only — no a-rate power expressions | Same |
+| Variable declaration | Lenient | **Strict** — must declare/init before use |
+| `outs` opcode | Works | Works (shows deprecation warning) |
+| Sample rate | Typically 48000 | 44100 (browser default) |
+
+### File Organization
+
+```
+content/instruments/
+├── drones/
+│   ├── tanpura-drone.csd        ← Cabbage prototype (source of truth)
+│   ├── tanpura-drone.orc        ← extracted orchestra for pieces
+│   └── tanpura-drone.md         ← AI pipeline documentation
+├── melodic/
+├── texture/
+├── effects/
+└── _shared/
+```
+
 ## Development Workflow
 
-1. **Composing instruments**: Work in `content/instruments/`, test in CsoundQt, then verify in-browser with `pnpm dev`
+1. **Composing instruments**: Design in Cabbage (`content/instruments/{category}/{name}.csd`), extract to `.orc`, verify in-browser with `pnpm dev`
 2. **Composing pieces**: Create `content/pieces/{context}/{slug}/`, write orchestra referencing instruments via `#include`, write shader referencing shared GLSL, create piece.json manifest
-3. **Writing shaders**: Shared functions in `content/shaders/lib/`, piece-specific in piece dir. Dev server hot-reloads.
+3. **Writing shaders**: Shared functions in `content/shaders/lib/`, piece-specific in piece dir. Dev server hot-reloads. Per-instrument Csound channels drive shader uniforms via `u_{channel_name}`.
 4. **AI template maintenance**: Update instrument `.md` docs → run `build-ai-reference` → test generation
 
 ## Conventions

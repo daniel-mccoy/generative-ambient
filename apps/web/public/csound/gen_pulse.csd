@@ -433,49 +433,91 @@ instr 4
   k_lfo1_fade linseg 0, 24.6, 1, p3 - 24.6, 1
   k_lfo1_fx = (k_lfo1 * 0.5 + 0.5) * k_lfo1_fade ; skew unipolar: 0..1
 
-  ; ===== SWARM SINE (Osc A) =====
-  ; 7 detuned sines — Spacing 61.1% (~6 cents), Motion 34.1%
-  ; Each voice drifts independently via randi
-  i_spr    = 0.0006                                ; ~1 cent per step
+  ; ===== LFO 2: Mid-range movement (0.04 Hz = 25s period) =====
+  ; Adds faster modulation for filter sweep and shape morphing
+  k_phs2   phasor 0.04
+  k_lfo2   = sin(k_phs2 * 2 * $M_PI)             ; smooth sine 0.04 Hz
+  k_lfo2   = k_lfo2 * 0.5 + 0.5                   ; unipolar 0..1
 
-  k_d1     randi  0.0008, 0.31
-  k_d2     randi  0.0008, 0.27
-  k_d3     randi  0.0008, 0.34
-  k_d4     randi  0.0008, 0.29
-  k_d5     randi  0.0008, 0.33
-  k_d6     randi  0.0008, 0.26
-  k_d7     randi  0.0008, 0.36
+  ; ===== SWARM (Osc A) =====
+  ; 7 detuned voices with per-voice amplitude drift — each voice
+  ; slowly fades in/out independently so the texture constantly shifts.
+  ; Wider spacing + 3rd/5th partials at low levels for harmonic presence.
+  i_spr    = 0.002                                 ; ~3.5 cents per step
 
-  a_s1     oscili 1, i_freq * (1 - i_spr*3 + k_d1)
-  a_s2     oscili 1, i_freq * (1 - i_spr*2 + k_d2)
-  a_s3     oscili 1, i_freq * (1 - i_spr   + k_d3)
-  a_s4     oscili 1, i_freq * (1            + k_d4)
-  a_s5     oscili 1, i_freq * (1 + i_spr   + k_d5)
-  a_s6     oscili 1, i_freq * (1 + i_spr*2 + k_d6)
-  a_s7     oscili 1, i_freq * (1 + i_spr*3 + k_d7)
+  ; Per-voice pitch drift
+  k_d1     randi  0.003, 0.41
+  k_d2     randi  0.003, 0.33
+  k_d3     randi  0.003, 0.47
+  k_d4     randi  0.003, 0.37
+  k_d5     randi  0.003, 0.44
+  k_d6     randi  0.003, 0.31
+  k_d7     randi  0.003, 0.49
+
+  ; Per-voice amplitude drift (irrational rates so they never sync)
+  ; Range 0.3–1.0: voices never fully disappear but constantly rebalance
+  k_a1     randi  0.35, 0.07
+  k_a2     randi  0.35, 0.11
+  k_a3     randi  0.35, 0.05
+  k_a4     randi  0.35, 0.09
+  k_a5     randi  0.35, 0.13
+  k_a6     randi  0.35, 0.06
+  k_a7     randi  0.35, 0.10
+  k_a1     = 0.65 + k_a1
+  k_a2     = 0.65 + k_a2
+  k_a3     = 0.65 + k_a3
+  k_a4     = 0.65 + k_a4
+  k_a5     = 0.65 + k_a5
+  k_a6     = 0.65 + k_a6
+  k_a7     = 0.65 + k_a7
+
+  ; Fundamentals
+  a_s1     oscili k_a1, i_freq * (1 - i_spr*3 + k_d1)
+  a_s2     oscili k_a2, i_freq * (1 - i_spr*2 + k_d2)
+  a_s3     oscili k_a3, i_freq * (1 - i_spr   + k_d3)
+  a_s4     oscili k_a4, i_freq * (1            + k_d4)
+  a_s5     oscili k_a5, i_freq * (1 + i_spr   + k_d5)
+  a_s6     oscili k_a6, i_freq * (1 + i_spr*2 + k_d6)
+  a_s7     oscili k_a7, i_freq * (1 + i_spr*3 + k_d7)
+
+  ; 3rd partial (~12%) — slightly detuned from exact 3:1 for warmth
+  a_h3_1   oscili k_a1*0.12, i_freq * 3.003 * (1 - i_spr*3 + k_d1)
+  a_h3_4   oscili k_a4*0.12, i_freq * 2.997 * (1            + k_d4)
+  a_h3_7   oscili k_a7*0.12, i_freq * 3.005 * (1 + i_spr*3 + k_d7)
+
+  ; 5th partial (~6%) on alternating voices — airy upper presence
+  a_h5_2   oscili k_a2*0.06, i_freq * 5.002 * (1 - i_spr*2 + k_d2)
+  a_h5_5   oscili k_a5*0.06, i_freq * 4.998 * (1 + i_spr   + k_d5)
 
   a_swarm  = (a_s1 + a_s2 + a_s3 + a_s4 + a_s5 + a_s6 + a_s7) / 7
+  a_swarm  = a_swarm + (a_h3_1 + a_h3_4 + a_h3_7 + a_h5_2 + a_h5_5) / 5
+
+  ; Filtered noise breath — adds air and texture between the tones
+  a_noise  noise  0.03, 0
+  a_noise  butterbp a_noise, i_freq * 2, i_freq * 1.5
+  a_noise  butterlp a_noise, 6000
+  a_swarm  = a_swarm + a_noise
 
   ; ===== BASIC SHAPES (Osc B) =====
   ; Shape 52.4% — slightly more square than saw
-  ; LFO 1 → Osc Macro 1 at 48%
+  ; LFO 1 → Osc Macro 1 at 48%, LFO 2 adds faster shape movement
   a_saw    vco2   1, i_freq, 0
   a_sqr    vco2   1, i_freq, 10, 0.5
-  k_shape  = 0.524 + k_lfo1_fx * 0.48
+  k_shape  = 0.524 + k_lfo1_fx * 0.48 + k_lfo2 * 0.15
   k_shape  limit  k_shape, 0, 1
   a_oscB   = a_saw * (1 - k_shape) + a_sqr * k_shape
 
   ; ===== FILTERS =====
-  ; Filter A: SVF 12dB LP at 3.52 kHz, Q 0 — gentle warmth on swarm
-  ; LFO 1 → Filter Freq at 47%
-  k_cutA   = 3520 + k_lfo1_fx * 0.47 * 3000
-  k_cutA   limit  k_cutA, 1200, 7000
+  ; Filter A: SVF 12dB LP — wider sweep with both LFOs
+  ; LFO 1 (glacial) + LFO 2 (mid-range) for layered movement
+  k_cutA   = 3520 + k_lfo1_fx * 0.47 * 3000 + k_lfo2 * 1500
+  k_cutA   limit  k_cutA, 1500, 8000
   a_filtA  butterlp a_swarm, k_cutA
 
   ; Filter B: Membrane Resonator at 8.49 kHz — airy shimmer on shapes
-  ; Low Q (damped) + LP after to tame harmonics
+  ; Higher LP ceiling to let more harmonics through
   a_filtB  mode   a_oscB, 8490, 2
-  a_filtB  butterlp a_filtB, 4000
+  a_filtB  butterlp a_filtB, 5500
 
   ; ===== AMP ENVELOPE =====
   ; A: 4.47s, D: 6.10s, S: -5.5 dB (0.53), R: 1.69s
@@ -488,8 +530,8 @@ instr 4
   k_env    linseg 0, i_atkA, 1, i_decA, i_susLvl, i_susT, i_susLvl, i_relA, 0
 
   ; ===== OUTPUT =====
-  ; Mix: swarm dominant (ethereal), shapes recessed (body)
-  a_mix    = (a_filtA * 0.75 + a_filtB * 0.25) * i_amp * k_env * 1.8
+  ; Mix: swarm dominant (ethereal), shapes for body and harmonics
+  a_mix    = (a_filtA * 0.65 + a_filtB * 0.35) * i_amp * k_env * 1.8
 
   ; Safety fade in/out
   k_fade   linseg 0, 3, 1, p3 - 8, 1, 5, 0
