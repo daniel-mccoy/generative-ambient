@@ -44,8 +44,8 @@ float getPattern(vec2 fuv, float zr, float drift, float detail) {
 void main() {
     vec2 uv = (gl_FragCoord.xy - 0.5 * u_resolution.xy) / u_resolution.y;
 
-    // Rotation: steady base + swarm_lfo glacial drift
-    float rotation = u_time * (0.1 + u_swarm_lfo * 0.06);
+    // Rotation: constant speed + swarm_lfo as additive angle offset
+    float rotation = u_time * 0.1 + u_swarm_lfo * 0.3;
     uv = mat2(cos(rotation), -sin(rotation),
               sin(rotation), cos(rotation)) * uv;
 
@@ -57,9 +57,8 @@ void main() {
     angle = mod(angle, segmentAngle);
     angle = min(angle, segmentAngle - angle);
 
-    // Zoom: steady base + bass_rms swells
-    float zoomSpeed = 0.25 + u_bass_rms * 0.4;
-    float logRadius = log2(radius + 0.001) - u_time * zoomSpeed;
+    // Zoom: constant speed + bass_rms as additive depth offset
+    float logRadius = log2(radius + 0.001) - u_time * 0.25 - u_bass_rms * 0.3;
 
     // Two-layer crossfade for seamless zoom
     float f1 = fract(logRadius);
@@ -73,7 +72,7 @@ void main() {
 
     float drift = u_time * 0.2;
     // pluck_rms → detail flash on transients, swarm_rms → steady shimmer
-    float detail = u_pluck_rms * 3.0 + u_swarm_rms * 3.0;
+    float detail = u_pluck_rms * 1.0 + u_swarm_rms * 1.5;
     float pattern1 = getPattern(foldedUV1, zoomRadius1, drift, detail);
     float pattern2 = getPattern(foldedUV2, zoomRadius2, drift, detail);
 
@@ -81,24 +80,24 @@ void main() {
     float pattern = mix(pattern2, pattern1, blend);
 
     // Hue shifts with mid frequencies + bass_cutoff warmth + swarm_lfo drift
-    vec3 color = palette(pattern + radius * 0.3 + u_time * 0.05, u_mid * 0.8 + u_bass_cutoff * 0.5 + u_swarm_lfo * 0.3);
+    vec3 color = palette(pattern + radius * 0.3 + u_time * 0.05, u_mid * 0.06 + u_bass_cutoff * 0.15 + u_swarm_lfo * 0.12);
 
     // Vignette: pad_pulse breathes the visible area open/closed
-    float vignetteOuter = 1.0 + u_pad_pulse * 0.35;
+    float vignetteOuter = 1.0 + u_pad_pulse * 0.15;
     float vignette = 1.0 - smoothstep(0.4, vignetteOuter, radius);
     color *= vignette;
 
     // Contrast: bass FFT + bass_rms for deeper punch
-    float contrast = 1.0 + u_bass * 0.3 + u_bass_rms * 0.6;
+    float contrast = 1.0 + u_bass * 0.15 + u_bass_rms * 0.3;
     color = mix(vec3(0.5), color, contrast);
 
     // pad_rms → ambient brightness lift
-    color += u_pad_rms * 0.4;
+    color += u_pad_rms * 0.3;
 
     // Highs + pluck_rms pulse the brightest areas
     float luminance = dot(color, vec3(0.299, 0.587, 0.114));
-    float highlightMask = smoothstep(0.4, 0.7, luminance);
-    color += highlightMask * (u_high * 0.5 + u_pluck_rms * 1.5);
+    float highlightMask = smoothstep(0.3, 0.6, luminance);
+    color += highlightMask * u_pluck_rms * 1.0;
 
     // Deepen colors
     color = pow(color, vec3(1.2));
