@@ -555,17 +555,28 @@ instr 95
   k_save chnget "preset_save"
   k_load chnget "preset_load"
 
+  ; Auto-load last saved preset on startup (if file exists)
+  i_exists filevalid "/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/fm-synth-rig-preset.json"
+  k_init init 0
+  if k_init == 0 && i_exists == 1 then
+    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/fm-synth-rig-preset.json")
+    printks "Auto-loaded preset from fm-synth-rig-preset.json\\n", 0
+    k_init = 1
+  elseif k_init == 0 then
+    k_init = 1
+  endif
+
   k_sv trigger k_save, 0.5, 0
   k_ld trigger k_load, 0.5, 0
 
   if k_sv == 1 then
-    kOk channelStateSave "fm-synth-rig-preset.json"
+    kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/fm-synth-rig-preset.json")
     chnset k(0), "preset_save"
     printks "Preset saved to fm-synth-rig-preset.json\\n", 0
   endif
 
   if k_ld == 1 then
-    kOk channelStateRecall "fm-synth-rig-preset.json"
+    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/fm-synth-rig-preset.json")
     chnset k(0), "preset_load"
     printks "Preset loaded from fm-synth-rig-preset.json\\n", 0
   endif

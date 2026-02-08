@@ -1,5 +1,5 @@
 <Cabbage>
-form caption("Sequencer Rig — Generative Pluck") size(820, 720), colour(30, 30, 50), pluginId("sqrg")
+form caption("Sequencer Rig — Generative Pluck") size(820, 790), colour(30, 30, 50), pluginId("sqrg")
 
 ; Header
 label bounds(10, 8, 800, 25) text("SEQUENCER RIG") fontColour(120, 200, 150) fontSize(18) align("left")
@@ -154,11 +154,18 @@ button bounds(630, 635, 85, 30) channel("preset_save") text("Save", "Save") valu
 button bounds(720, 635, 85, 30) channel("preset_load") text("Load", "Load") value(0) colour:0(50, 50, 70) colour:1(100, 180, 224) fontColour:0(180, 180, 200) fontColour:1(255, 255, 255)
 label bounds(630, 668, 175, 16) text("Save/load preset to JSON") fontColour(140, 140, 160) fontSize(9) align("centre")
 
+;=====================================================================
+; ROW 6 (y=695): ROOT NOTE KEYBOARD
+;=====================================================================
+
+keyboard bounds(10, 695, 800, 75)
+label bounds(10, 773, 400, 14) text("Click a key to set the sequencer root note") fontColour(140, 140, 160) fontSize(9) align("left")
+
 </Cabbage>
 
 <CsoundSynthesizer>
 <CsOptions>
--odac -d
+-odac -d -+rtmidi=NULL -M0
 </CsOptions>
 <CsInstruments>
 
@@ -168,6 +175,9 @@ nchnls = 2
 0dbfs = 1
 
 seed 0
+
+; Route keyboard MIDI to root note capture instrument
+massign 0, 85
 
 ; Sine table for oscili
 gi_sine ftgen 0, 0, 8192, 10, 1
@@ -644,6 +654,21 @@ endin
 
 
 ;==============================================================
+; ROOT NOTE CAPTURE — instr 85
+;
+; Receives MIDI from keyboard widget, sets seq_root channel,
+; then immediately turns off. Only note-on matters.
+;==============================================================
+instr 85
+
+  inum notnum
+  chnset k(inum), "seq_root"
+  turnoff
+
+endin
+
+
+;==============================================================
 ; PRESET MANAGER — instr 95
 ;
 ; Save/Load all channel values to/from JSON file.
@@ -654,17 +679,28 @@ instr 95
   k_save chnget "preset_save"
   k_load chnget "preset_load"
 
+  ; Auto-load last saved preset on startup (if file exists)
+  i_exists filevalid "/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json"
+  k_init init 0
+  if k_init == 0 && i_exists == 1 then
+    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
+    printks "Auto-loaded preset from sequencer-rig-preset.json\\n", 0
+    k_init = 1
+  elseif k_init == 0 then
+    k_init = 1
+  endif
+
   k_sv trigger k_save, 0.5, 0
   k_ld trigger k_load, 0.5, 0
 
   if k_sv == 1 then
-    kOk channelStateSave "sequencer-rig-preset.json"
+    kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
     chnset k(0), "preset_save"
     printks "Preset saved to sequencer-rig-preset.json\\n", 0
   endif
 
   if k_ld == 1 then
-    kOk channelStateRecall "sequencer-rig-preset.json"
+    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
     chnset k(0), "preset_load"
     printks "Preset loaded from sequencer-rig-preset.json\\n", 0
   endif
