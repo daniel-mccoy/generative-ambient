@@ -1,8 +1,8 @@
 <Cabbage>
-form caption("Pad Synth Rig — Polyphonic Sound Design") size(820, 720), colour(30, 30, 50), pluginId("pdsr")
+form caption("FM Synth Rig — Polyphonic Sound Design") size(820, 720), colour(30, 30, 50), pluginId("pdsr")
 
 ; Header
-label bounds(10, 8, 800, 25) text("PAD SYNTH RIG") fontColour(100, 180, 224) fontSize(18) align("left")
+label bounds(10, 8, 800, 25) text("FM SYNTH RIG") fontColour(100, 180, 224) fontSize(18) align("left")
 label bounds(10, 32, 800, 18) text("Generative Ambient — Polyphonic Sound Design Environment") fontColour(150, 150, 170) fontSize(12) align("left")
 
 ;=====================================================================

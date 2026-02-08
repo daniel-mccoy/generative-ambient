@@ -1,8 +1,8 @@
 <Cabbage>
-form caption("Sound Design Rig — Modular") size(820, 810), colour(30, 30, 50), pluginId("sdri")
+form caption("Tanpura Drone Rig — Modular Sound Design") size(820, 810), colour(30, 30, 50), pluginId("sdri")
 
 ; Header
-label bounds(10, 8, 800, 25) text("SOUND DESIGN RIG") fontColour(224, 122, 95) fontSize(18) align("left")
+label bounds(10, 8, 800, 25) text("TANPURA DRONE RIG") fontColour(224, 122, 95) fontSize(18) align("left")
 label bounds(10, 32, 800, 18) text("Generative Ambient — Modular Prototyping Environment") fontColour(150, 150, 170) fontSize(12) align("left")
 
 ;=====================================================================
