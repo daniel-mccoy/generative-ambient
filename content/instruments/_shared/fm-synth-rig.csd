@@ -145,8 +145,11 @@ groupbox bounds(630, 475, 180, 135) text("SENDS") colour(40, 40, 60) fontColour(
 ; ROW 5 (y=620): KEYBOARD
 ;=====================================================================
 
-keyboard bounds(10, 620, 710, 80)
-button bounds(730, 625, 80, 65) channel("hold") text("HOLD", "HOLD") value(0) colour:0(60, 60, 80) colour:1(120, 200, 150) fontColour:0(180, 180, 200) fontColour:1(30, 30, 50)
+keyboard bounds(10, 620, 620, 80)
+button bounds(640, 625, 80, 65) channel("hold") text("HOLD", "HOLD") value(0) colour:0(60, 60, 80) colour:1(120, 200, 150) fontColour:0(180, 180, 200) fontColour:1(30, 30, 50)
+
+button bounds(730, 625, 80, 30) channel("preset_save") text("Save", "Save") value(0) colour:0(50, 50, 70) colour:1(100, 180, 224) fontColour:0(180, 180, 200) fontColour:1(255, 255, 255)
+button bounds(730, 660, 80, 30) channel("preset_load") text("Load", "Load") value(0) colour:0(50, 50, 70) colour:1(100, 180, 224) fontColour:0(180, 180, 200) fontColour:1(255, 255, 255)
 
 </Cabbage>
 
@@ -542,6 +545,35 @@ endin
 
 
 ;==============================================================
+; PRESET MANAGER — instr 95
+;
+; Save/Load all channel values to/from JSON file.
+; Uses channelStateSave / channelStateRecall opcodes.
+;==============================================================
+instr 95
+
+  k_save chnget "preset_save"
+  k_load chnget "preset_load"
+
+  k_sv trigger k_save, 0.5, 0
+  k_ld trigger k_load, 0.5, 0
+
+  if k_sv == 1 then
+    kOk channelStateSave "fm-synth-rig-preset.json"
+    chnset k(0), "preset_save"
+    printks "Preset saved to fm-synth-rig-preset.json\\n", 0
+  endif
+
+  if k_ld == 1 then
+    kOk channelStateRecall "fm-synth-rig-preset.json"
+    chnset k(0), "preset_load"
+    printks "Preset loaded from fm-synth-rig-preset.json\\n", 0
+  endif
+
+endin
+
+
+;==============================================================
 ; DELAY — instr 98 (Ping-Pong)
 ;
 ; Modulated ping-pong delay with UI controls.
@@ -616,6 +648,7 @@ endin
 <CsScore>
 ; LFO modulator + effects always on; instr 1 is MIDI-triggered
 i 90 0 [60*60*4]   ; LFO modulator
+i 95 0 [60*60*4]   ; preset manager
 i 98 0 [60*60*4]   ; ping-pong delay
 i 99 0 [60*60*4]   ; reverb
 e

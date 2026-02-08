@@ -159,6 +159,10 @@ label bounds(10, 665, 100, 16) text("Delay extras:") fontColour(160, 160, 180) f
 rslider bounds(120, 660, 50, 50) channel("dly_mod_rate") range(0.05, 2, 0.23, 0.5, 0.01) text("Mod Rate") textColour(200,200,220) trackerColour(100, 180, 224)
 rslider bounds(180, 660, 50, 50) channel("dly_rvb_send") range(0, 1, 0.2, 1, 0.01) text("Dly>Rvb") textColour(200,200,220) trackerColour(100, 180, 224)
 
+button bounds(630, 665, 85, 30) channel("preset_save") text("Save", "Save") value(0) colour:0(50, 50, 70) colour:1(100, 180, 224) fontColour:0(180, 180, 200) fontColour:1(255, 255, 255)
+button bounds(720, 665, 85, 30) channel("preset_load") text("Load", "Load") value(0) colour:0(50, 50, 70) colour:1(100, 180, 224) fontColour:0(180, 180, 200) fontColour:1(255, 255, 255)
+label bounds(630, 698, 175, 16) text("Save/load preset to JSON") fontColour(140, 140, 160) fontSize(9) align("centre")
+
 </Cabbage>
 
 <CsoundSynthesizer>
@@ -621,6 +625,35 @@ endin
 
 
 ;==============================================================
+; PRESET MANAGER — instr 95
+;
+; Save/Load all channel values to/from JSON file.
+; Uses channelStateSave / channelStateRecall opcodes.
+;==============================================================
+instr 95
+
+  k_save chnget "preset_save"
+  k_load chnget "preset_load"
+
+  k_sv trigger k_save, 0.5, 0
+  k_ld trigger k_load, 0.5, 0
+
+  if k_sv == 1 then
+    kOk channelStateSave "tanpura-drone-rig-preset.json"
+    chnset k(0), "preset_save"
+    printks "Preset saved to tanpura-drone-rig-preset.json\\n", 0
+  endif
+
+  if k_ld == 1 then
+    kOk channelStateRecall "tanpura-drone-rig-preset.json"
+    chnset k(0), "preset_load"
+    printks "Preset loaded from tanpura-drone-rig-preset.json\\n", 0
+  endif
+
+endin
+
+
+;==============================================================
 ; DELAY — instr 98 (Ping-Pong)
 ;
 ; Modulated ping-pong delay with UI controls.
@@ -697,6 +730,7 @@ endin
 ; Score order: modulator -> synth (w/ envelopes) -> delay -> reverb
 i 90 0 [60*60*4]   ; modulator (LFOs — sets mod globals)
 i 1  0 [60*60*4]   ; tanpura synth (envelopes are local)
+i 95 0 [60*60*4]   ; preset manager
 i 98 0 [60*60*4]   ; ping-pong delay
 i 99 0 [60*60*4]   ; reverb
 e

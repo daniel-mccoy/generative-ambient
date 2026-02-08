@@ -112,7 +112,7 @@ groupbox bounds(10, 305, 800, 170) text("MODULATION") colour(35, 35, 55) fontCol
 groupbox bounds(10, 485, 220, 135) text("DELAY") colour(40, 40, 60) fontColour(200, 200, 220) {
     combobox bounds(5, 30, 45, 20) channel("dly_div") value(3) text("1/2", "1/4", "D.1/8", "1/8", "1/16", "T.1/4", "T.1/8")
     rslider bounds(55, 28, 48, 48) channel("dly_fb") range(0, 0.9, 0.55, 1, 0.01) text("FB") textColour(200,200,220) trackerColour(100, 180, 224)
-    rslider bounds(105, 28, 48, 48) channel("dly_wet") range(0, 1, 0.3, 1, 0.01) text("Wet") textColour(200,200,220) trackerColour(100, 180, 224)
+    rslider bounds(105, 28, 48, 48) channel("dly_mix") range(0, 1, 0.4, 1, 0.01) text("Mix") textColour(200,200,220) trackerColour(100, 180, 224)
     rslider bounds(155, 28, 48, 48) channel("dly_mod") range(0, 0.02, 0.003, 0.5, 0.001) text("Mod") textColour(200,200,220) trackerColour(100, 180, 224)
     label bounds(5, 55, 45, 14) text("Div") fontColour(140, 140, 160) fontSize(9) align("centre")
     label bounds(5, 85, 210, 30) text("BPM-synced ping-pong delay") fontColour(140, 140, 160) fontSize(10) align("left")
@@ -136,7 +136,7 @@ groupbox bounds(425, 485, 200, 135) text("MASTER") colour(40, 40, 60) fontColour
 
 ; Sends
 groupbox bounds(630, 485, 180, 135) text("SENDS") colour(40, 40, 60) fontColour(200, 200, 220) {
-    rslider bounds(10, 28, 50, 50) channel("dly_send") range(0, 1, 0.25, 1, 0.01) text("Delay") textColour(200,200,220) trackerColour(150, 150, 200)
+    rslider bounds(10, 28, 50, 50) channel("dly_send") range(0, 1, 0.5, 1, 0.01) text("Delay") textColour(200,200,220) trackerColour(150, 150, 200)
     rslider bounds(65, 28, 50, 50) channel("rvb_send") range(0, 1, 0.45, 1, 0.01) text("Reverb") textColour(200,200,220) trackerColour(150, 150, 200)
     rslider bounds(120, 28, 50, 50) channel("dly_rvb_send") range(0, 1, 0.2, 1, 0.01) text("Dly>Rvb") textColour(200,200,220) trackerColour(150, 150, 200)
     label bounds(10, 88, 170, 25) text("Effect send levels") fontColour(140, 140, 160) fontSize(10) align("left")
@@ -149,6 +149,10 @@ groupbox bounds(630, 485, 180, 135) text("SENDS") colour(40, 40, 60) fontColour(
 button bounds(10, 635, 100, 55) channel("seq_play") text("PLAY", "STOP") value(1) colour:0(60, 60, 80) colour:1(120, 200, 150) fontColour:0(180, 180, 200) fontColour:1(30, 30, 50)
 label bounds(120, 640, 400, 18) text("Sequencer auto-plays on start. Toggle to stop/start note generation.") fontColour(140, 140, 160) fontSize(10) align("left")
 label bounds(120, 660, 400, 18) channel("seq_status") text("Playing...") fontColour(120, 200, 150) fontSize(11) align("left")
+
+button bounds(630, 635, 85, 30) channel("preset_save") text("Save", "Save") value(0) colour:0(50, 50, 70) colour:1(100, 180, 224) fontColour:0(180, 180, 200) fontColour:1(255, 255, 255)
+button bounds(720, 635, 85, 30) channel("preset_load") text("Load", "Load") value(0) colour:0(50, 50, 70) colour:1(100, 180, 224) fontColour:0(180, 180, 200) fontColour:1(255, 255, 255)
+label bounds(630, 668, 175, 16) text("Save/load preset to JSON") fontColour(140, 140, 160) fontSize(9) align("centre")
 
 </Cabbage>
 
@@ -626,14 +630,44 @@ instr 1
   aL dcblock aL
   aR dcblock aR
 
-  ; --- Direct out ---
-  outs aL, aR
+  ; --- Dry/wet split for delay ---
+  k_dly_mix  chnget "dly_mix"
+  outs aL * (1 - k_dly_mix), aR * (1 - k_dly_mix)
 
   ; --- Send to effects buses ---
   ga_dly_L = ga_dly_L + aL * k_dly_send
   ga_dly_R = ga_dly_R + aR * k_dly_send
   ga_rvb_L = ga_rvb_L + aL * k_rvb_send
   ga_rvb_R = ga_rvb_R + aR * k_rvb_send
+
+endin
+
+
+;==============================================================
+; PRESET MANAGER — instr 95
+;
+; Save/Load all channel values to/from JSON file.
+; Uses channelStateSave / channelStateRecall opcodes.
+;==============================================================
+instr 95
+
+  k_save chnget "preset_save"
+  k_load chnget "preset_load"
+
+  k_sv trigger k_save, 0.5, 0
+  k_ld trigger k_load, 0.5, 0
+
+  if k_sv == 1 then
+    kOk channelStateSave "sequencer-rig-preset.json"
+    chnset k(0), "preset_save"
+    printks "Preset saved to sequencer-rig-preset.json\\n", 0
+  endif
+
+  if k_ld == 1 then
+    kOk channelStateRecall "sequencer-rig-preset.json"
+    chnset k(0), "preset_load"
+    printks "Preset loaded from sequencer-rig-preset.json\\n", 0
+  endif
 
 endin
 
@@ -650,7 +684,7 @@ instr 98
   k_div      chnget "dly_div"
   k_bpm      chnget "seq_bpm"
   k_fb       chnget "dly_fb"
-  k_wet      chnget "dly_wet"
+  k_mix      chnget "dly_mix"
   k_mod_dep  chnget "dly_mod"
   k_rvb_send chnget "dly_rvb_send"
 
@@ -694,8 +728,8 @@ instr 98
   a_tap_R deltap3 k_time - k_mod
           delayw ga_dly_R + a_tap_L * k_fb
 
-  ; --- Output ---
-  outs a_tap_L * k_wet, a_tap_R * k_wet
+  ; --- Output (wet side of dry/wet crossfade) ---
+  outs a_tap_L * k_mix, a_tap_R * k_mix
 
   ; --- Delay -> Reverb send ---
   ga_rvb_L = ga_rvb_L + a_tap_L * k_rvb_send
@@ -739,6 +773,7 @@ endin
 ; Pluck voices (instr 1) are event-triggered by sequencer
 i 90 0 [60*60*4]   ; LFO modulator
 i 80 0 [60*60*4]   ; probabilistic sequencer
+i 95 0 [60*60*4]   ; preset manager
 i 98 0 [60*60*4]   ; ping-pong delay
 i 99 0 [60*60*4]   ; reverb
 e
