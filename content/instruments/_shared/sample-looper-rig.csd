@@ -427,11 +427,15 @@ instr 1
   k_mode chnget "loop_mode"
   k_mode_chg changed k_mode
 
-  ; Skip mode-change reinit on very first k-cycle
-  k_first_cycle init 1
-  if k_first_cycle == 1 then
-    k_mode_chg = 0
-    k_first_cycle = 0
+  ; Startup guard: suppress load/mode triggers for first 10 k-cycles
+  ; to let preset recall (instr 95) stabilize channels before acting.
+  ; Without this, preset recalling load_sample=1 triggers a spurious
+  ; reinit + GEN01 file load that can crash Cabbage.
+  k_startup_guard init 10
+  if k_startup_guard > 0 then
+    k_startup_guard -= 1
+    k_load_trig = 0
+    k_mode_chg  = 0
   endif
 
   ; Set flag via channel so init block knows Load was clicked
@@ -574,6 +578,10 @@ instr 95
   k_init init 0
   if k_init == 0 && i_exists == 1 then
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sample-looper-rig-preset.json")
+    ; Reset buttons that should never auto-trigger from preset recall
+    chnset k(0), "load_sample"
+    chnset k(0), "preset_save"
+    chnset k(0), "preset_load"
     printks "Auto-loaded preset from sample-looper-rig-preset.json\n", 0
     k_gui_refresh = 1
     k_init = 1
@@ -585,14 +593,17 @@ instr 95
   k_ld trigger k_load, 0.5, 0
 
   if k_sv == 1 then
-    kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sample-looper-rig-preset.json")
+    ; Reset buttons BEFORE save so they're stored as 0 in the JSON
     chnset k(0), "preset_save"
+    chnset k(0), "load_sample"
+    kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sample-looper-rig-preset.json")
     printks "Preset saved to sample-looper-rig-preset.json\n", 0
   endif
 
   if k_ld == 1 then
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sample-looper-rig-preset.json")
     chnset k(0), "preset_load"
+    chnset k(0), "load_sample"
     printks "Preset loaded from sample-looper-rig-preset.json\n", 0
     k_gui_refresh = 1
   endif

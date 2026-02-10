@@ -7,14 +7,38 @@ const SHADER_FILES = [
   { name: "kaleidoscope.frag", label: "Kaleidoscope" },
   { name: "mandala.frag", label: "Morphing Mandala" },
   { name: "embers.frag", label: "Ambient Embers" },
+  { name: "rocaille.frag", label: "Rocaille" },
+  { name: "ocean.frag", label: "Ocean" },
+  { name: "galaxy.frag", label: "Galaxy" },
+  { name: "aurora.frag", label: "Aurora Borealis" },
 ];
 
-const CSD_FILES = [
-  { name: "gen_pulse.csd", label: "Gen Pulse (Looping AD Drone)" },
-  { name: "band_test.csd", label: "Band Test (Bass→Mid→High→All)" },
-  { name: "cascade_harmonics.csd", label: "Cascade Harmonics + Reverb" },
-  { name: "fm_bells.csd", label: "FM Bells" },
-  { name: "test.csd", label: "220 Hz Sine (2s)" },
+const CSD_FILES: Array<{
+  name: string;
+  label: string;
+  samples?: Array<{ url: string; filename: string }>;
+}> = [
+  { name: "deep_focus.csd", label: "Deep Focus (Full Composition)" },
+  { name: "deep_focus_bass.csd", label: "Deep Focus — Bass Drone" },
+  { name: "deep_focus_pad.csd", label: "Deep Focus — Drone Pad" },
+  { name: "deep_focus_swarm.csd", label: "Deep Focus — Swarm Pad" },
+  { name: "deep_focus_pluck.csd", label: "Deep Focus — Pluck Sequencer" },
+  {
+    name: "ocean_waves.csd",
+    label: "Ocean Waves",
+    samples: [
+      { url: "/samples/ocean-roar.wav", filename: "ocean-roar.wav" },
+    ],
+  },
+  {
+    name: "aurora_ocean.csd",
+    label: "Aurora Ocean",
+    samples: [
+      { url: "/samples/ocean-roar.wav", filename: "ocean-roar.wav" },
+      { url: "/samples/padsynth-a.wav", filename: "padsynth-a.wav" },
+      { url: "/samples/padsynth-b.wav", filename: "padsynth-b.wav" },
+    ],
+  },
 ];
 
 const VERTEX_SHADER = `
@@ -75,6 +99,9 @@ export default function TestCombinedPage() {
   const uChannelRefs = useRef<Record<string, WebGLUniformLocation | null>>(
     Object.fromEntries(CSOUND_CHANNELS.map((n) => [n, null])),
   );
+
+  // Noise texture for shaders that need sampler2D (galaxy, etc.)
+  const noiseTextureRef = useRef<WebGLTexture | null>(null);
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const csoundRef = useRef<any>(null);
@@ -168,6 +195,14 @@ export default function TestCombinedPage() {
       // Per-instrument channel uniform locations
       for (const name of CSOUND_CHANNELS) {
         uChannelRefs.current[name] = gl.getUniformLocation(program, `u_${name}`);
+      }
+
+      // Noise texture uniform (null if shader doesn't declare u_noise)
+      const uNoise = gl.getUniformLocation(program, "u_noise");
+      if (uNoise && noiseTextureRef.current) {
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, noiseTextureRef.current);
+        gl.uniform1i(uNoise, 0);
       }
 
       startTimeRef.current = performance.now() / 1000;
@@ -273,6 +308,26 @@ export default function TestCombinedPage() {
       gl.STATIC_DRAW,
     );
 
+    // Create 256x256 noise texture (used by galaxy, etc.)
+    if (!noiseTextureRef.current) {
+      const tex = gl.createTexture();
+      if (tex) {
+        const size = 256;
+        const data = new Uint8Array(size * size);
+        for (let i = 0; i < data.length; i++) {
+          data[i] = Math.floor(Math.random() * 256);
+        }
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.LUMINANCE, size, size, 0, gl.LUMINANCE, gl.UNSIGNED_BYTE, data);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.REPEAT);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+        gl.bindTexture(gl.TEXTURE_2D, null);
+        noiseTextureRef.current = tex;
+      }
+    }
+
     return gl;
   }, []);
 
@@ -349,6 +404,26 @@ export default function TestCombinedPage() {
         return;
       }
       const csdText = await res.text();
+
+      // Load samples into Csound virtual filesystem before compilation
+      const csdEntry = CSD_FILES.find((c) => c.name === selectedCsd);
+      if (csdEntry?.samples && csound.fs) {
+        for (const sample of csdEntry.samples) {
+          setStatus(`Loading sample: ${sample.filename}...`);
+          try {
+            const sampleRes = await fetch(sample.url);
+            if (!sampleRes.ok) {
+              setStatus(`Error: Failed to fetch sample ${sample.url} (${sampleRes.status})`);
+              return;
+            }
+            const buf = await sampleRes.arrayBuffer();
+            await csound.fs.writeFile(sample.filename, new Uint8Array(buf));
+          } catch (e) {
+            setStatus(`Error loading sample ${sample.filename}: ${e}`);
+            return;
+          }
+        }
+      }
 
       setStatus("Compiling CSD...");
       const result = await csound.compileCSD(csdText, 1);
@@ -443,7 +518,7 @@ export default function TestCombinedPage() {
 
       {showUI && (
         <div className="fixed top-4 left-4 z-10 flex flex-col gap-3 rounded-lg bg-black/70 p-4 backdrop-blur-sm min-w-[280px]">
-          <h1 className="text-lg font-bold text-white">Combined Audio + Shader</h1>
+          <h1 className="text-lg font-bold text-white">Deep Focus — Audio + Shader</h1>
 
           {/* CSD selector */}
           <label className="flex flex-col gap-1">

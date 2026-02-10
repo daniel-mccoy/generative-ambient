@@ -4,13 +4,20 @@
 </CsOptions>
 <CsInstruments>
 
-; Bass drone solo test
+;======================================================
+; DEEP FOCUS — Bass Drone (solo)
+;
+; Resonant sub-bass at C1. Saw + square oscillators
+; through moogladder 24dB/oct LP with wander LFO.
+; Mostly felt, not heard — the foundation layer.
+;======================================================
 
 sr = 44100
 ksmps = 64
 nchnls = 2
 0dbfs = 1
 
+; Send buses
 ga_rvb_L init 0
 ga_rvb_R init 0
 ga_dly_L init 0
@@ -24,6 +31,7 @@ instr 3
   i_freq = p4
   i_amp  = p5
 
+  ; ===== WANDER LFO (0.21 Hz) =====
   k_w1     randi  1, 0.21
   k_w2     randi  0.5, 0.09
   k_wander = (k_w1 + k_w2) / 1.5
@@ -31,6 +39,7 @@ instr 3
   k_fade_in linseg 0, 2.4, 1, p3 - 2.4, 1
   k_wander_fx = k_wander * k_fade_in * 0.722
 
+  ; ===== OSCILLATORS =====
   k_shape  = 0.635 + k_wander_fx * 0.47
   k_shape  limit k_shape, 0, 1
   a_saw_A  vco2   1, i_freq, 0
@@ -41,16 +50,29 @@ instr 3
 
   a_osc    = (a_osc_A + a_osc_B) * 0.5
 
+  ; ===== FILTER: moogladder 24dB/oct LP =====
   k_cutoff = 350 + k_wander_fx * 560
   k_cutoff limit k_cutoff, 140, 800
   a_filt   moogladder a_osc, k_cutoff, 0.72
 
+  ; ===== ENVELOPE =====
   k_fade   linseg 0, 5, 1, p3 - 13, 1, 8, 0
 
+  ; ===== OUTPUT =====
   a_out    = a_filt * i_amp * k_fade * 2.0
 
   outs     a_out * 0.55, a_out * 0.45
 
+  ; Per-instrument analysis
+  k_rms    rms    a_out
+  k_rms    port   k_rms, 0.05
+  chnset   k_rms, "bass_rms"
+  k_cut_n  = (k_cutoff - 140) / (800 - 140)
+  k_cut_n  limit k_cut_n, 0, 1
+  k_cut_n  port   k_cut_n, 0.05
+  chnset   k_cut_n, "bass_cutoff"
+
+  ; Effect sends
   ga_dly_L = ga_dly_L + a_out * 0.15
   ga_dly_R = ga_dly_R + a_out * 0.15
   ga_rvb_L = ga_rvb_L + a_out * 0.4
@@ -59,16 +81,17 @@ instr 3
 endin
 
 ;------------------------------------------------------
-; PING-PONG DELAY
+; PING-PONG DELAY — dotted eighths at 80 BPM
 ;------------------------------------------------------
 instr 98
+
   i_bpm    = 80
   i_eighth = 60 / i_bpm / 2
   i_dotted = i_eighth * 1.5
   i_maxdel = 2.0
 
   k_fb     = 0.65
-  k_wet    = 0.55
+  k_wet    = 0.88
 
   k_mod    lfo    0.003, 0.23, 0
 
@@ -90,6 +113,7 @@ instr 98
 
   ga_dly_L = 0
   ga_dly_R = 0
+
 endin
 
 ;------------------------------------------------------
@@ -104,7 +128,7 @@ endin
 
 </CsInstruments>
 <CsScore>
-i3   0 99999 32.70 0.60
+i3   0 99999 32.70 0.60  ; bass drone at C1
 i98  0 99999
 i99  0 99999
 </CsScore>

@@ -5,7 +5,7 @@
 <CsInstruments>
 
 ;======================================================
-; GEN PULSE — Generative Version
+; DEEP FOCUS — Generative Ambient for Concentration
 ;
 ; Four layers: bass drone + drone pad + swarm pad + pluck
 ;
@@ -14,7 +14,7 @@
 ; slow organic movement. Mostly felt, not heard.
 ;
 ; Layer 2 (Drone Pad): Conductor (100) spawns overlapping
-; gen_pulse voices (1) with looping AD envelopes,
+; drone voices (1) with looping AD envelopes,
 ; waveform morphing, and filter modulation. C2–C3.
 ;
 ; Layer 3 (Swarm Pad): Conductor (102) spawns swarm
@@ -54,6 +54,10 @@ gk_pad_pulse init 0
 gk_swarm_rms init 0
 gk_swarm_lfo init 0
 gk_pluck_rms init 0
+
+; Pluck modulation (set by conductor 101, read by voice 2)
+gk_pluck_mod_cutoff init 0
+gk_pluck_mod_reso   init 0
 
 ;------------------------------------------------------
 ; CONDUCTOR — spawns gen_pulse voices over time
@@ -231,68 +235,101 @@ endin
 
 ;------------------------------------------------------
 ; SEQUENCE CONDUCTOR — probabilistic pluck sequencer
+;
+; Modulation LFOs (matching rig preset):
+;   Density wander  — 0.1 Hz, ±0.165 around 0.50
+;   Range S&H       — 0.07 Hz, ±0.48 octaves around 1.5
+;   Cutoff sine     — 0.05 Hz, ±2040 Hz (written to global)
+;   Reso wander     — 0.15 Hz, ±0.078 around 0.25 (written to global)
 ;------------------------------------------------------
 instr 101
 
+  ; === MODULATION LFOs ===
+
+  ; Density wander (~0.1 Hz, ±0.165)
+  k_dw1    randi  1, 0.1
+  k_dw2    randi  0.5, 0.043
+  k_dens_mod = (k_dw1 + k_dw2) / 1.5 * 0.165
+
+  ; Range S&H (~0.07 Hz, ±0.48 octaves)
+  k_rphs   phasor 0.07
+  k_rsh    init   0
+  k_rprev  init   1
+  if k_rphs < k_rprev then
+    k_rsh  random -1, 1
+  endif
+  k_rprev  = k_rphs
+  k_range_mod = k_rsh * 0.48
+
+  ; Cutoff sine (~0.05 Hz, ±2040 Hz) → global for voice
+  k_cut_lfo lfo 1, 0.05, 0
+  gk_pluck_mod_cutoff = k_cut_lfo * 2040
+
+  ; Reso wander (~0.15 Hz, ±0.078) → global for voice
+  k_rw1    randi  1, 0.15
+  k_rw2    randi  0.5, 0.064
+  gk_pluck_mod_reso = (k_rw1 + k_rw2) / 1.5 * 0.078
+
+  ; === COMPUTED PARAMETERS ===
+
+  k_density = 0.50 + k_dens_mod
+  k_density limit k_density, 0.1, 0.9
+
+  k_range  = 1.5 + k_range_mod
+  k_range  limit k_range, 0.5, 2.5
+  k_range_semi = k_range * 12
+
+  ; === SEQUENCER ===
+
   ; Eighth-note clock at 80 BPM → 2.667 Hz
-  ; 30% of ticks skip to quarter-note spacing (adds breathing room)
   k_tick   metro  2.667
 
   if k_tick == 1 then
 
-    ; 70% eighth note, 30% skip (quarter note gap)
-    k_skip   random 0, 1
-    if k_skip < 0.70 then
+    ; Single density gate (no skip layer — simpler, more musical)
+    k_roll   random 0, 1
+    if k_roll < k_density then
 
-      ; 75% note probability (~12/16 steps active, more space)
-      k_roll   random 0, 1
-      if k_roll < 0.75 then
+      ; Polyphony limit: max 8 simultaneous pluck voices
+      k_active active 2
+      if k_active < 8 then
 
-        ; Polyphony limit: max 8 simultaneous pluck voices
-        k_active active 2
-        if k_active < 8 then
+        ; --- Pitch: scale-quantized across modulated range from C3 ---
+        k_deg    random 0, 4.99
+        k_semi   table  int(k_deg), gi_scale    ; 0,3,5,7,10
+        ; Spread across modulated range
+        k_oct_off random 0, k_range_semi - 0.01
+        k_oct_off = int(k_oct_off)
+        ; Re-quantize to nearest scale degree
+        k_total  = k_semi + k_oct_off
+        k_octave = int(k_total / 12)
+        k_rem    = k_total - k_octave * 12
+        ; Snap to nearest pentatonic degree
+        k_snap = (k_rem < 2) ? 0 : (k_rem < 4) ? 3 : (k_rem < 6) ? 5 : (k_rem < 9) ? 7 : 10
+        k_freq   = 130.81 * semitone(k_snap + k_octave * 12)
 
-          ; --- Pitch: scale-quantized across 1.5 octaves from C3 ---
-          ; Pick random degree from C minor pentatonic
-          k_deg    random 0, 4.99
-          k_semi   table  int(k_deg), gi_scale    ; 0,3,5,7,10
-          ; Spread across 1.5 octaves: base octave + random offset
-          k_oct_off random 0, 17.99               ; 0–17 semitones ≈ 1.5 oct
-          k_oct_off = int(k_oct_off)
-          ; Re-quantize to nearest scale degree
-          k_total  = k_semi + k_oct_off
-          ; Wrap into scale via modulo + octave tracking
-          k_octave = int(k_total / 12)
-          k_rem    = k_total - k_octave * 12
-          ; Snap remainder to nearest pentatonic degree
-          ; C=0, Eb=3, F=5, G=7, Bb=10
-          k_snap = (k_rem < 2) ? 0 : (k_rem < 4) ? 3 : (k_rem < 6) ? 5 : (k_rem < 9) ? 7 : 10
-          k_freq   = 130.81 * semitone(k_snap + k_octave * 12)
+        ; 20% chance of octave up
+        k_up     random 0, 1
+        k_freq   = (k_up < 0.2) ? k_freq * 2 : k_freq
 
-          ; 20% chance of octave up
-          k_up     random 0, 1
-          k_freq   = (k_up < 0.2) ? k_freq * 2 : k_freq
+        ; Clamp to reasonable range (C2–C5)
+        k_freq   limit k_freq, 65.41, 1046.5
 
-          ; Clamp to reasonable range (C2–C5)
-          k_freq   limit k_freq, 65.41, 1046.5
+        ; --- Velocity: wide range matching MIDI 12–124 ---
+        k_vel    random 0.09, 0.98
 
-          ; --- Velocity: wide range matching MIDI 12–124 ---
-          k_vel    random 0.09, 0.98
+        ; --- Pan: spread across stereo field ---
+        k_pan    random 0.2, 0.8
 
-          ; --- Pan: spread across stereo field ---
-          k_pan    random 0.2, 0.8
+        ; --- Spawn pluck note (3.0s covers 2.67s decay + headroom) ---
+        event    "i", 2, 0, 3.0, k_freq, k_vel, k_pan
 
-          ; --- Spawn pluck note (3.0s covers 2.67s decay + headroom) ---
-          event    "i", 2, 0, 3.0, k_freq, k_vel, k_pan
-
-          ; 15% chance of double-trigger (Stepic divider=2)
-          k_dbl    random 0, 1
-          if k_dbl < 0.15 then
-            ; Slight timing offset for double (half an eighth note later)
-            event  "i", 2, 0.1875, 3.0, k_freq, k_vel * 0.8, 1 - k_pan
-          endif
-
+        ; 15% chance of double-trigger (syncopation)
+        k_dbl    random 0, 1
+        if k_dbl < 0.15 then
+          event  "i", 2, 0.1875, 3.0, k_freq, k_vel * 0.8, 1 - k_pan
         endif
+
       endif
     endif
   endif
@@ -324,18 +361,21 @@ instr 2
   a_sqr    vco2   1, i_freq, 10, 0.5         ; square (50% duty)
   a_osc    = a_saw * 0.571 + a_sqr * 0.429   ; 42.9% shape blend
 
-  ; ===== FILTER: 24dB/oct LP (cascaded butterlp) =====
+  ; ===== FILTER: moogladder 24dB/oct LP with resonance =====
   ; Base 313 Hz, modulated by A Env (38%), M Env (53%), Velocity (36%)
-  ; Depth scaled so peak with max velocity reaches ~2000–2500 Hz
+  ; + conductor LFO modulation (cutoff sine ±2040 Hz, reso wander ±0.078)
   i_base_cut = 313
   i_depth    = 4000                           ; modulation depth in Hz
   k_fmod   = k_aenv * 0.38 + k_menv * 0.53 + i_vel * 0.36
-  k_cutoff = i_base_cut + k_fmod * i_depth
+  k_cutoff = i_base_cut + k_fmod * i_depth + gk_pluck_mod_cutoff
   k_cutoff limit k_cutoff, 200, 12000
 
-  ; Two cascaded 12dB butterlp = 24dB/oct
-  a_filt   butterlp a_osc, k_cutoff
-  a_filt   butterlp a_filt, k_cutoff
+  ; Resonance: 0.25 base + conductor wander modulation
+  k_reso   = 0.25 + gk_pluck_mod_reso
+  k_reso   limit k_reso, 0, 0.8
+
+  ; moogladder: 24dB/oct with resonance for pluck character
+  a_filt   moogladder a_osc, k_cutoff, k_reso
 
   ; ===== OUTPUT =====
   ; Volume: velocity × 18% — sits back, headroom for 8 voices summing
@@ -672,7 +712,7 @@ instr 98
   i_maxdel = 2.0
 
   k_fb     = 0.65
-  k_wet    = 0.55
+  k_wet    = 0.88
 
   k_mod    lfo    0.003, 0.23, 0
 

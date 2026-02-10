@@ -76,12 +76,14 @@ seed 0
 
 gi_sine ftgen 0, 0, 8192, 10, 1
 
-; Excitation points: 2 points at (0.3, 0.4) and (0.7, 0.6)
-; Use positive size (power-of-2 with guard point) — platerev can't read non-pow2 tables
-gi_excite ftgen 0, 0, 4, -2, 0.3, 0.4, 0.7, 0.6
+; Excitation points: 2 points as (x,y) pairs — values in (0,1) range
+; platerev point count comes from number of audio args, NOT table size.
+; Table just needs to be big enough: ftlen >= 2*N_points.
+; Size 8 (power of 2) with 2 points → reads positions 0-3.
+gi_excite ftgen 50, 0, 8, -2, 0.3, 0.4, 0.7, 0.6
 
-; Output pickup points: 2 points at (0.2, 0.3) and (0.8, 0.7)
-gi_outs ftgen 0, 0, 4, -2, 0.2, 0.3, 0.8, 0.7
+; Output pickup points: 2 points as (x,y) pairs
+gi_outs ftgen 51, 0, 8, -2, 0.2, 0.3, 0.8, 0.7
 
 ga_send_L init 0
 ga_send_R init 0
@@ -159,14 +161,18 @@ instr 99
   ; Mono input fed to both excitation points
   amono = (ga_send_L + ga_send_R) * 0.5
 
-  ; platerev: outputs match number of pickup point pairs in gi_outs
-  ; 2 pickup points → 2 audio outputs → stereo
+  ; platerev: 2 excitation points → 2 audio inputs, 2 pickup points → 2 outputs
   ; i-rate params read via chnget (i(kvar) is Csound 7 only)
   iaspect chnget "pl_aspect"
   istiff  chnget "pl_stiff"
   idecay  chnget "pl_decay"
   iloss   chnget "pl_loss"
   aL, aR platerev gi_excite, gi_outs, kbndry, iaspect, istiff, idecay, iloss, amono, amono
+
+  ; Sanitize: physical models can produce extreme values / NaN / inf.
+  ; Without clamping, NaN * 0 = NaN corrupts even 100% dry output.
+  aL limit aL, -2, 2
+  aR limit aR, -2, 2
 
   ; Post EQ
   aL butterhp aL, khpf
