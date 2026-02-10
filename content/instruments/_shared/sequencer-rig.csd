@@ -1,5 +1,5 @@
 <Cabbage>
-form caption("Sequencer Rig — Generative Pluck") size(820, 790), colour(30, 30, 50), pluginId("sqrg")
+form caption("Sequencer Rig — Generative Pluck") size(820, 790), colour(30, 30, 50), pluginId("sqrg"), guiMode("queue")
 
 ; Header
 label bounds(10, 8, 800, 25) text("SEQUENCER RIG") fontColour(120, 200, 150) fontSize(18) align("left")
@@ -222,6 +222,28 @@ gk_mod_vol      init 0
 
 
 ;==============================================================
+; SYNC MACROS — Force widget visual update after preset recall.
+; guiMode("queue") means chnset alone doesn't update visuals.
+; Read channel back → cabbageSetValue to push to GUI queue.
+;==============================================================
+#define SYNC_WIDGET(CH) #
+k_sv chnget "$CH"
+cabbageSetValue "$CH", k_sv
+#
+
+#define SYNC_LFO(N) #
+k_sv chnget "lfo$N._freq"
+cabbageSetValue "lfo$N._freq", k_sv
+k_sv chnget "lfo$N._amp"
+cabbageSetValue "lfo$N._amp", k_sv
+k_sv chnget "lfo$N._wave"
+cabbageSetValue "lfo$N._wave", k_sv
+k_sv chnget "lfo$N._target"
+cabbageSetValue "lfo$N._target", k_sv
+#
+
+
+;==============================================================
 ; UDO: LFOWave — Multi-waveform LFO with k-rate shape select
 ;
 ; ktype: 1=sine, 2=tri, 3=saw-up, 4=saw-down, 5=square, 6=S&H, 7=wander
@@ -325,7 +347,7 @@ instr 90
   k_tgt1  chnget "lfo1_target"
   k_val1  LFOWave k_amp1, k_frq1, k_wav1
   LFORoutePluck k_tgt1, k_val1
-  chnset k_val1, "lfo1_out"
+  cabbageSetValue "lfo1_out", k_val1
 
   ; --- LFO 2 ---
   k_frq2  chnget "lfo2_freq"
@@ -334,7 +356,7 @@ instr 90
   k_tgt2  chnget "lfo2_target"
   k_val2  LFOWave k_amp2, k_frq2, k_wav2
   LFORoutePluck k_tgt2, k_val2
-  chnset k_val2, "lfo2_out"
+  cabbageSetValue "lfo2_out", k_val2
 
   ; --- LFO 3 ---
   k_frq3  chnget "lfo3_freq"
@@ -343,7 +365,7 @@ instr 90
   k_tgt3  chnget "lfo3_target"
   k_val3  LFOWave k_amp3, k_frq3, k_wav3
   LFORoutePluck k_tgt3, k_val3
-  chnset k_val3, "lfo3_out"
+  cabbageSetValue "lfo3_out", k_val3
 
   ; --- LFO 4 ---
   k_frq4  chnget "lfo4_freq"
@@ -352,7 +374,7 @@ instr 90
   k_tgt4  chnget "lfo4_target"
   k_val4  LFOWave k_amp4, k_frq4, k_wav4
   LFORoutePluck k_tgt4, k_val4
-  chnset k_val4, "lfo4_out"
+  cabbageSetValue "lfo4_out", k_val4
 
 endin
 
@@ -679,12 +701,17 @@ instr 95
   k_save chnget "preset_save"
   k_load chnget "preset_load"
 
+  ; GUI refresh flags (for syncing widget visuals after recall)
+  k_gui_refresh init 0
+  k_gui_delay   init 0
+
   ; Auto-load last saved preset on startup (if file exists)
   i_exists filevalid "/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json"
   k_init init 0
   if k_init == 0 && i_exists == 1 then
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
     printks "Auto-loaded preset from sequencer-rig-preset.json\\n", 0
+    k_gui_refresh = 1
     k_init = 1
   elseif k_init == 0 then
     k_init = 1
@@ -703,6 +730,59 @@ instr 95
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
     chnset k(0), "preset_load"
     printks "Preset loaded from sequencer-rig-preset.json\\n", 0
+    k_gui_refresh = 1
+  endif
+
+  ; --- GUI refresh: sync widget visuals after preset recall ---
+  if k_gui_refresh == 1 then
+    k_gui_delay += 1
+    if k_gui_delay >= 5 then
+      k_gui_refresh = 0
+      k_gui_delay   = 0
+
+      ; Sync LFOs
+      $SYNC_LFO(1)
+      $SYNC_LFO(2)
+      $SYNC_LFO(3)
+      $SYNC_LFO(4)
+
+      ; Sync rig-specific widgets
+      $SYNC_WIDGET(seq_bpm)
+      $SYNC_WIDGET(seq_swing)
+      $SYNC_WIDGET(seq_density)
+      $SYNC_WIDGET(seq_gate)
+      $SYNC_WIDGET(seq_root)
+      $SYNC_WIDGET(seq_scale)
+      $SYNC_WIDGET(seq_range)
+      $SYNC_WIDGET(seq_octjump)
+      $SYNC_WIDGET(seq_velmin)
+      $SYNC_WIDGET(seq_velmax)
+      $SYNC_WIDGET(seq_accent)
+      $SYNC_WIDGET(osc_shape)
+      $SYNC_WIDGET(osc_detune)
+      $SYNC_WIDGET(osc_sub)
+      $SYNC_WIDGET(filt_cutoff)
+      $SYNC_WIDGET(filt_reso)
+      $SYNC_WIDGET(filt_envamt)
+      $SYNC_WIDGET(filt_decay)
+      $SYNC_WIDGET(amp_a)
+      $SYNC_WIDGET(amp_d)
+      $SYNC_WIDGET(amp_s)
+      $SYNC_WIDGET(dly_div)
+      $SYNC_WIDGET(dly_fb)
+      $SYNC_WIDGET(dly_mix)
+      $SYNC_WIDGET(dly_mod)
+      $SYNC_WIDGET(rvb_fb)
+      $SYNC_WIDGET(rvb_cut)
+      $SYNC_WIDGET(rvb_wet)
+      $SYNC_WIDGET(master_vol)
+      $SYNC_WIDGET(master_lpf)
+      $SYNC_WIDGET(warmth)
+      $SYNC_WIDGET(dly_send)
+      $SYNC_WIDGET(rvb_send)
+      $SYNC_WIDGET(dly_rvb_send)
+      $SYNC_WIDGET(seq_play)
+    endif
   endif
 
 endin
