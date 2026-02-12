@@ -1,9 +1,9 @@
 <Cabbage>
-form caption("Sequencer Rig — Generative Pluck") size(820, 790), colour(30, 30, 50), pluginId("sqrg"), guiMode("queue")
+form caption("Circle-of-Fifths Rig — Harmonic Modulation Sequencer") size(820, 850), colour(30, 30, 50), pluginId("cofr"), guiMode("queue")
 
 ; Header
-label bounds(10, 8, 800, 25) text("SEQUENCER RIG") fontColour(120, 200, 150) fontSize(18) align("left")
-label bounds(10, 32, 800, 18) text("Generative Ambient — Probabilistic Pluck Sequencer") fontColour(150, 150, 170) fontSize(12) align("left")
+label bounds(10, 8, 800, 25) text("CIRCLE-OF-FIFTHS RIG") fontColour(120, 200, 150) fontSize(18) align("left")
+label bounds(10, 32, 800, 18) text("Generative Ambient — Probabilistic Pluck Sequencer with Harmonic Modulation") fontColour(150, 150, 170) fontSize(12) align("left")
 
 ;=====================================================================
 ; ROW 1 (y=60): SEQUENCER
@@ -19,50 +19,61 @@ groupbox bounds(10, 60, 230, 130) text("TIMING") colour(40, 40, 60) fontColour(2
 }
 
 ; Pitch + Pattern
-groupbox bounds(245, 60, 265, 130) text("PITCH") colour(40, 40, 60) fontColour(200, 200, 220) {
+groupbox bounds(245, 60, 185, 130) text("PITCH") colour(40, 40, 60) fontColour(200, 200, 220) {
     rslider bounds(10, 25, 48, 48) channel("seq_root") range(24, 72, 48, 1, 1) text("Root") textColour(200,200,220) trackerColour(120, 200, 150)
-    combobox bounds(65, 28, 80, 20) channel("seq_scale") value(1) text("Min Pent", "Maj Pent", "Minor", "Major", "Dorian", "Chromatic")
-    rslider bounds(152, 25, 48, 48) channel("seq_range") range(0.5, 3, 1.5, 1, 0.1) text("Range") textColour(200,200,220) trackerColour(120, 200, 150)
-    rslider bounds(204, 25, 48, 48) channel("seq_octjump") range(0, 0.5, 0.2, 1, 0.01) text("OctJump") textColour(200,200,220) trackerColour(120, 200, 150)
-    label bounds(65, 52, 80, 20) text("Scale") fontColour(140, 140, 160) fontSize(9) align("centre")
+    rslider bounds(68, 25, 48, 48) channel("seq_range") range(0.5, 3, 1.5, 1, 0.1) text("Range") textColour(200,200,220) trackerColour(120, 200, 150)
+    rslider bounds(126, 25, 48, 48) channel("seq_octjump") range(0, 0.5, 0.2, 1, 0.01) text("OctJump") textColour(200,200,220) trackerColour(120, 200, 150)
     combobox bounds(10, 82, 58, 18) channel("seq_patmode") value(1) text("Free", "1 Bar", "2 Bars", "4 Bars")
     label bounds(10, 102, 58, 12) text("Pattern") fontColour(140, 140, 160) fontSize(8) align("centre")
     rslider bounds(75, 76, 42, 42) channel("seq_patrep") range(1, 32, 8, 0.5, 1) text("Rep") textColour(200,200,220) trackerColour(120, 200, 150)
     label bounds(122, 84, 58, 25) text("times\nbefore new") fontColour(140, 140, 160) fontSize(7) align("left")
 }
 
+; Harmony (NEW — circle-of-fifths conductor controls)
+groupbox bounds(435, 60, 375, 130) text("HARMONY") colour(40, 40, 60) fontColour(200, 200, 220) {
+    combobox bounds(10, 28, 60, 20) channel("cond_start_key") value(1) text("C", "G", "D", "A", "E", "B", "F#", "C#", "Ab", "Eb", "Bb", "F")
+    label bounds(10, 52, 60, 14) text("Key") fontColour(140, 140, 160) fontSize(9) align("centre")
+    rslider bounds(80, 22, 48, 48) channel("cond_speed") range(0.5, 10, 3, 0.5, 0.1) text("Speed") textColour(200,200,220) trackerColour(200, 160, 255)
+    label bounds(80, 72, 48, 14) text("minutes") fontColour(140, 140, 160) fontSize(8) align("centre")
+    combobox bounds(140, 28, 70, 20) channel("cond_dir") value(1) text("Sharps", "Flats", "Random")
+    label bounds(140, 52, 70, 14) text("Direction") fontColour(140, 140, 160) fontSize(9) align("centre")
+    button bounds(220, 28, 50, 20) channel("cond_enabled") text("OFF", "ON") value(0) colour:0(60, 60, 80) colour:1(200, 160, 255) fontColour:0(180, 180, 200) fontColour:1(30, 30, 50)
+    label bounds(220, 52, 50, 14) text("Mod") fontColour(140, 140, 160) fontSize(9) align("centre")
+    button bounds(280, 28, 50, 20) channel("cond_manual") text("Next", "Next") value(0) colour:0(60, 60, 80) colour:1(120, 200, 150) fontColour:0(180, 180, 200) fontColour:1(30, 30, 50)
+    label bounds(280, 52, 50, 14) text("Step") fontColour(140, 140, 160) fontSize(9) align("centre")
+    label bounds(10, 90, 100, 18) channel("cond_key_lbl") text("Key: C") fontColour(200, 160, 255) fontSize(12) align("left")
+    label bounds(120, 90, 150, 18) channel("cond_status") text("Idle") fontColour(180, 180, 200) fontSize(10) align("left")
+    gentable bounds(280, 72, 85, 45) tableNumber(100) tableColour(200, 160, 255) tableBackgroundColour(30, 30, 50) ampRange(0, 1.1, 100) identChannel("cond_gt_ident")
+}
+
 ; Dynamics
-groupbox bounds(515, 60, 295, 130) text("DYNAMICS") colour(40, 40, 60) fontColour(200, 200, 220) {
+groupbox bounds(10, 200, 295, 95) text("DYNAMICS") colour(40, 40, 60) fontColour(200, 200, 220) {
     rslider bounds(10, 25, 55, 55) channel("seq_velmin") range(0.1, 1, 0.3, 1, 0.01) text("Vel Min") textColour(200,200,220) trackerColour(120, 200, 150)
     rslider bounds(72, 25, 55, 55) channel("seq_velmax") range(0.1, 1, 0.8, 1, 0.01) text("Vel Max") textColour(200,200,220) trackerColour(120, 200, 150)
     rslider bounds(134, 25, 55, 55) channel("seq_accent") range(0, 1, 0.3, 1, 0.01) text("Accent") textColour(200,200,220) trackerColour(120, 200, 150)
-    label bounds(10, 85, 280, 25) text("Random velocity range. Accent = probability of max hit.") fontColour(140, 140, 160) fontSize(9) align("left")
+    label bounds(10, 80, 280, 12) text("Random velocity range. Accent = probability of max hit.") fontColour(140, 140, 160) fontSize(9) align("left")
 }
 
 ;=====================================================================
-; ROW 2 (y=200): SYNTH
+; ROW 2 (y=305): SYNTH
 ;=====================================================================
 
 ; Oscillator
-groupbox bounds(10, 200, 180, 95) text("OSCILLATOR") colour(40, 40, 60) fontColour(200, 200, 220) {
+groupbox bounds(315, 200, 180, 95) text("OSCILLATOR") colour(40, 40, 60) fontColour(200, 200, 220) {
     rslider bounds(10, 25, 48, 48) channel("osc_shape") range(0, 1, 0.43, 1, 0.01) text("Shape") textColour(200,200,220) trackerColour(224, 160, 80)
     rslider bounds(65, 25, 48, 48) channel("osc_detune") range(0, 10, 3, 1, 0.1) text("Detune") textColour(200,200,220) trackerColour(224, 160, 80)
     rslider bounds(120, 25, 48, 48) channel("osc_sub") range(0, 1, 0.2, 1, 0.01) text("Sub") textColour(200,200,220) trackerColour(224, 160, 80)
 }
 
 ; Filter
-groupbox bounds(195, 200, 260, 95) text("FILTER") colour(40, 40, 60) fontColour(200, 200, 220) {
-    rslider bounds(10, 25, 55, 55) channel("filt_cutoff") range(200, 12000, 313, 0.3, 1) text("Cutoff") textColour(200,200,220) trackerColour(224, 160, 80)
-    rslider bounds(68, 25, 55, 55) channel("filt_reso") range(0, 0.9, 0, 1, 0.01) text("Reso") textColour(200,200,220) trackerColour(224, 160, 80)
-    rslider bounds(126, 25, 55, 55) channel("filt_envamt") range(0, 1, 0.5, 1, 0.01) text("EnvAmt") textColour(200,200,220) trackerColour(224, 160, 80)
-    rslider bounds(184, 25, 55, 55) channel("filt_decay") range(0.1, 5, 1.69, 0.5, 0.01) text("F.Decay") textColour(200,200,220) trackerColour(224, 160, 80)
-}
-
-; Amp
-groupbox bounds(460, 200, 200, 95) text("AMP ENVELOPE") colour(40, 40, 60) fontColour(200, 200, 220) {
-    rslider bounds(10, 25, 55, 55) channel("amp_a") range(0.001, 0.5, 0.005, 0.3, 0.001) text("Attack") textColour(200,200,220) trackerColour(224, 122, 95)
-    rslider bounds(72, 25, 55, 55) channel("amp_d") range(0.1, 8, 2.67, 0.3, 0.01) text("Decay") textColour(200,200,220) trackerColour(224, 122, 95)
-    rslider bounds(134, 25, 55, 55) channel("amp_s") range(0, 0.5, 0, 1, 0.01) text("Sustain") textColour(200,200,220) trackerColour(224, 122, 95)
+groupbox bounds(500, 200, 310, 95) text("FILTER + AMP") colour(40, 40, 60) fontColour(200, 200, 220) {
+    rslider bounds(5, 25, 40, 40) channel("filt_cutoff") range(200, 12000, 313, 0.3, 1) text("Cut") textColour(200,200,220) trackerColour(224, 160, 80)
+    rslider bounds(48, 25, 40, 40) channel("filt_reso") range(0, 0.9, 0, 1, 0.01) text("Res") textColour(200,200,220) trackerColour(224, 160, 80)
+    rslider bounds(91, 25, 40, 40) channel("filt_envamt") range(0, 1, 0.5, 1, 0.01) text("Env") textColour(200,200,220) trackerColour(224, 160, 80)
+    rslider bounds(134, 25, 40, 40) channel("filt_decay") range(0.1, 5, 1.69, 0.5, 0.01) text("F.Dec") textColour(200,200,220) trackerColour(224, 160, 80)
+    rslider bounds(184, 25, 40, 40) channel("amp_a") range(0.001, 0.5, 0.005, 0.3, 0.001) text("Atk") textColour(200,200,220) trackerColour(224, 122, 95)
+    rslider bounds(227, 25, 40, 40) channel("amp_d") range(0.1, 8, 2.67, 0.3, 0.01) text("Dec") textColour(200,200,220) trackerColour(224, 122, 95)
+    rslider bounds(270, 25, 40, 40) channel("amp_s") range(0, 0.5, 0, 1, 0.01) text("Sus") textColour(200,200,220) trackerColour(224, 122, 95)
 }
 
 ;=====================================================================
@@ -182,33 +193,30 @@ seed 0
 ; Route keyboard MIDI to root note capture instrument
 massign 0, 85
 
-; Sine table for oscili
-gi_sine ftgen 0, 0, 8192, 10, 1
+; Sine table for oscili (explicit number to avoid collision with 100-102)
+gi_sine ftgen 1, 0, 8192, 10, 1
 
 ;=====================================================================
-; SCALE TABLES (GEN -2: non-power-of-two sizes allowed)
+; CIRCLE-OF-FIFTHS DATA TABLES
 ;=====================================================================
-gi_sc_minpent ftgen 0, 0, -5,  -2, 0, 3, 5, 7, 10
-gi_sc_majpent ftgen 0, 0, -5,  -2, 0, 2, 4, 7, 9
-gi_sc_minor   ftgen 0, 0, -7,  -2, 0, 2, 3, 5, 7, 8, 10
-gi_sc_major   ftgen 0, 0, -7,  -2, 0, 2, 4, 5, 7, 9, 11
-gi_sc_dorian  ftgen 0, 0, -7,  -2, 0, 2, 3, 5, 7, 9, 10
-gi_sc_chrom   ftgen 0, 0, -12, -2, 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11
 
-gi_sc_len_minpent = 5
-gi_sc_len_majpent = 5
-gi_sc_len_minor   = 7
-gi_sc_len_major   = 7
-gi_sc_len_dorian  = 7
-gi_sc_len_chrom   = 12
+; Chromatic weight table: 12 slots (C=0 .. B=11), 1.0 = in scale, 0.0 = out
+; Initialized to C major: C D E F G A B = indices 0,2,4,5,7,9,11
+gi_weights ftgen 100, 0, -12, -2, 1, 0, 1, 0, 1, 1, 0, 1, 0, 1, 0, 1
+
+; Major scale intervals (semitones from root): 0 2 4 5 7 9 11
+gi_major_intervals ftgen 101, 0, -7, -2, 0, 2, 4, 5, 7, 9, 11
+
+; Circle-of-fifths pitch classes: C G D A E B F# C# Ab Eb Bb F
+gi_cof_pc ftgen 102, 0, -12, -2, 0, 7, 2, 9, 4, 11, 6, 1, 8, 3, 10, 5
 
 ;=====================================================================
 ; PATTERN TABLES (for pattern repeat mode)
 ; Max 32 steps = 4 bars x 8 eighth notes
 ;=====================================================================
-gi_pat_note ftgen 0, 0, -32, -2, 0  ; MIDI note per step (0 = rest)
-gi_pat_vel  ftgen 0, 0, -32, -2, 0  ; velocity per step
-gi_pat_dbl  ftgen 0, 0, -32, -2, 0  ; double-trigger MIDI note (0 = none)
+gi_pat_note ftgen 103, 0, -32, -2, 0  ; MIDI note per step (0 = rest)
+gi_pat_vel  ftgen 104, 0, -32, -2, 0  ; velocity per step
+gi_pat_dbl  ftgen 105, 0, -32, -2, 0  ; double-trigger MIDI note (0 = none)
 
 
 ;=====================================================================
@@ -235,7 +243,7 @@ gk_mod_vol      init 0
 ;==============================================================
 ; SYNC MACROS — Force widget visual update after preset recall.
 ; guiMode("queue") means chnset alone doesn't update visuals.
-; Read channel back → cabbageSetValue to push to GUI queue.
+; Read channel back -> cabbageSetValue to push to GUI queue.
 ;==============================================================
 #define SYNC_WIDGET(CH) #
 k_sv chnget "$CH"
@@ -334,423 +342,121 @@ endop
 
 
 ;==============================================================
-; MODULATOR — instr 90
+; UDO: WeightedPC — Pick weighted random pitch class from gi_weights
 ;
-; 4 LFOs with selectable waveform and routable target.
-; Each LFO: Freq, Amp, Wave (dropdown), Target (dropdown).
-; Amp defaults to 0 = off. Raise to activate.
+; Reads 12 chromatic weights, computes cumulative sums,
+; selects weighted random pitch class 0-11.
+; Returns -1 if all weights are 0.
 ;==============================================================
-instr 90
+opcode WeightedPC, k, 0
 
-  ; --- Reset all mod accumulators ---
-  gk_mod_cutoff  = 0
-  gk_mod_reso    = 0
-  gk_mod_shape   = 0
-  gk_mod_density = 0
-  gk_mod_range   = 0
-  gk_mod_gate    = 0
-  gk_mod_vol     = 0
+  k_wt = gi_weights
+  k_w0  tablekt 0, k_wt
+  k_w1  tablekt 1, k_wt
+  k_w2  tablekt 2, k_wt
+  k_w3  tablekt 3, k_wt
+  k_w4  tablekt 4, k_wt
+  k_w5  tablekt 5, k_wt
+  k_w6  tablekt 6, k_wt
+  k_w7  tablekt 7, k_wt
+  k_w8  tablekt 8, k_wt
+  k_w9  tablekt 9, k_wt
+  k_w10 tablekt 10, k_wt
+  k_w11 tablekt 11, k_wt
 
-  ; --- LFO 1 ---
-  k_frq1  chnget "lfo1_freq"
-  k_amp1  chnget "lfo1_amp"
-  k_wav1  chnget "lfo1_wave"
-  k_tgt1  chnget "lfo1_target"
-  k_val1  LFOWave k_amp1, k_frq1, k_wav1
-  LFORoutePluck k_tgt1, k_val1
-  cabbageSetValue "lfo1_out", k_val1
+  k_tw = k_w0+k_w1+k_w2+k_w3+k_w4+k_w5+k_w6+k_w7+k_w8+k_w9+k_w10+k_w11
 
-  ; --- LFO 2 ---
-  k_frq2  chnget "lfo2_freq"
-  k_amp2  chnget "lfo2_amp"
-  k_wav2  chnget "lfo2_wave"
-  k_tgt2  chnget "lfo2_target"
-  k_val2  LFOWave k_amp2, k_frq2, k_wav2
-  LFORoutePluck k_tgt2, k_val2
-  cabbageSetValue "lfo2_out", k_val2
+  k_pc = -1
 
-  ; --- LFO 3 ---
-  k_frq3  chnget "lfo3_freq"
-  k_amp3  chnget "lfo3_amp"
-  k_wav3  chnget "lfo3_wave"
-  k_tgt3  chnget "lfo3_target"
-  k_val3  LFOWave k_amp3, k_frq3, k_wav3
-  LFORoutePluck k_tgt3, k_val3
-  cabbageSetValue "lfo3_out", k_val3
+  if k_tw > 0.001 then
+    k_wroll random 0, k_tw
 
-  ; --- LFO 4 ---
-  k_frq4  chnget "lfo4_freq"
-  k_amp4  chnget "lfo4_amp"
-  k_wav4  chnget "lfo4_wave"
-  k_tgt4  chnget "lfo4_target"
-  k_val4  LFOWave k_amp4, k_frq4, k_wav4
-  LFORoutePluck k_tgt4, k_val4
-  cabbageSetValue "lfo4_out", k_val4
+    k_c0  = k_w0
+    k_c1  = k_c0 + k_w1
+    k_c2  = k_c1 + k_w2
+    k_c3  = k_c2 + k_w3
+    k_c4  = k_c3 + k_w4
+    k_c5  = k_c4 + k_w5
+    k_c6  = k_c5 + k_w6
+    k_c7  = k_c6 + k_w7
+    k_c8  = k_c7 + k_w8
+    k_c9  = k_c8 + k_w9
+    k_c10 = k_c9 + k_w10
 
-endin
+    k_pc = 11
+    if k_wroll < k_c10 then
+      k_pc = 10
+    endif
+    if k_wroll < k_c9 then
+      k_pc = 9
+    endif
+    if k_wroll < k_c8 then
+      k_pc = 8
+    endif
+    if k_wroll < k_c7 then
+      k_pc = 7
+    endif
+    if k_wroll < k_c6 then
+      k_pc = 6
+    endif
+    if k_wroll < k_c5 then
+      k_pc = 5
+    endif
+    if k_wroll < k_c4 then
+      k_pc = 4
+    endif
+    if k_wroll < k_c3 then
+      k_pc = 3
+    endif
+    if k_wroll < k_c2 then
+      k_pc = 2
+    endif
+    if k_wroll < k_c1 then
+      k_pc = 1
+    endif
+    if k_wroll < k_c0 then
+      k_pc = 0
+    endif
+  endif
+
+  xout k_pc
+endop
 
 
 ;==============================================================
-; SEQUENCER — instr 80
+; UDO: PCtoMIDI — Convert pitch class to MIDI note
 ;
-; Probabilistic note generator. Uses metro at eighth-note rate,
-; rolls against density for note probability, picks random
-; scale degree, fires event to spawn pluck voice (instr 1).
-;
-; Two modes:
-;   Free    — random note each trigger (original behavior)
-;   Pattern — generate a fixed pattern, repeat N times, regenerate
+; Takes pitch class (0-11), root MIDI note, range (octaves),
+; and octave jump probability. Returns MIDI note 24-108.
 ;==============================================================
-instr 80
+opcode PCtoMIDI, k, kkkk
+  kpc, kroot, krange, koctjump xin
 
-  ; --- Read sequencer parameters ---
-  k_play    chnget "seq_play"
-  k_bpm     chnget "seq_bpm"
-  k_swing   chnget "seq_swing"
-  k_dens_b  chnget "seq_density"
-  k_gate_b  chnget "seq_gate"
-  k_root    chnget "seq_root"
-  k_scale   chnget "seq_scale"
-  k_range_b chnget "seq_range"
-  k_octjump chnget "seq_octjump"
-  k_velmin  chnget "seq_velmin"
-  k_velmax  chnget "seq_velmax"
-  k_accent  chnget "seq_accent"
+  k_root_oct = int(kroot / 12)
+  k_root_pc  = kroot % 12
 
-  ; --- Pattern mode parameters ---
-  k_patmode chnget "seq_patmode"   ; 1=Free, 2=1bar, 3=2bars, 4=4bars
-  k_patrep  chnget "seq_patrep"   ; repeat count before regeneration
-
-  ; --- Apply LFO modulation ---
-  k_dens  = k_dens_b + gk_mod_density
-  k_range = k_range_b + gk_mod_range
-  k_gate  = k_gate_b + gk_mod_gate
-
-  ; --- Clamp modulated parameters ---
-  k_dens  limit k_dens, 0, 1
-  k_range limit k_range, 0.5, 4
-  k_gate  limit k_gate, 0.05, 5
-
-  ; --- Status display ---
-  if k_play > 0.5 then
-    chnset k_play, "seq_status_val"
+  k_midi = k_root_oct * 12 + kpc
+  if kpc < k_root_pc then
+    k_midi = k_midi + 12
   endif
 
-  ;==========================================================
-  ; SCALE TABLE SELECTION (shared by free mode + pattern gen)
-  ;==========================================================
-  k_sc_tab  = gi_sc_minpent
-  k_sc_len  = gi_sc_len_minpent
-
-  if k_scale == 2 then
-    k_sc_tab = gi_sc_majpent
-    k_sc_len = gi_sc_len_majpent
-  elseif k_scale == 3 then
-    k_sc_tab = gi_sc_minor
-    k_sc_len = gi_sc_len_minor
-  elseif k_scale == 4 then
-    k_sc_tab = gi_sc_major
-    k_sc_len = gi_sc_len_major
-  elseif k_scale == 5 then
-    k_sc_tab = gi_sc_dorian
-    k_sc_len = gi_sc_len_dorian
-  elseif k_scale == 6 then
-    k_sc_tab = gi_sc_chrom
-    k_sc_len = gi_sc_len_chrom
+  ; Octave spread
+  k_range_oct = int(krange)
+  if k_range_oct > 0 then
+    k_oct_rnd random 0, k_range_oct + 0.999
+    k_midi = k_midi + int(k_oct_rnd) * 12
   endif
 
-  ; Max degrees in range
-  k_range_semi = k_range * 12
-  k_max_deg = k_range_semi / 12 * k_sc_len
-  k_max_deg limit k_max_deg, 1, 60
-
-  ;==========================================================
-  ; PATTERN STATE
-  ;==========================================================
-  k_pat_step     init 0    ; current step within pattern
-  k_pat_rep      init 0    ; current repeat count
-  k_pat_len      init 8    ; pattern length in steps
-  k_pat_ready    init 0    ; 1 = pattern valid for playback
-  k_pat_need_gen init 0    ; 1 = regeneration requested
-  k_gen_active   init 0    ; 1 = generating (one step per k-cycle)
-  k_gen_step     init 0    ; current generation step index
-  k_gen_len      init 8    ; generation target length
-  k_prev_patmode init 1    ; detect mode changes
-  k_prev_scale   init 1    ; detect scale changes
-  k_prev_root    init 48   ; detect root changes
-
-  ; --- Calculate pattern length in steps (8 eighths per bar) ---
-  k_new_len = 8
-  if k_patmode == 3 then
-    k_new_len = 16
-  elseif k_patmode == 4 then
-    k_new_len = 32
+  ; Octave jump
+  k_oct_roll random 0, 1
+  if k_oct_roll < koctjump then
+    k_midi = k_midi + 12
   endif
 
-  ; --- Detect mode change -> regenerate ---
-  if k_patmode != k_prev_patmode then
-    k_pat_need_gen = 1
-    k_pat_ready = 0
-    k_prev_patmode = k_patmode
-  endif
+  k_midi limit k_midi, 24, 108
 
-  ; --- Detect scale or root change -> regenerate ---
-  if k_scale != k_prev_scale then
-    if k_patmode > 1 then
-      k_pat_need_gen = 1
-    endif
-    k_prev_scale = k_scale
-  endif
-  if k_root != k_prev_root then
-    if k_patmode > 1 then
-      k_pat_need_gen = 1
-    endif
-    k_prev_root = k_root
-  endif
-
-  ; --- Stop generation if switched to free mode ---
-  if k_patmode == 1 && k_gen_active == 1 then
-    k_gen_active = 0
-  endif
-
-  ; --- Request initial generation for pattern mode ---
-  if k_patmode > 1 && k_pat_ready == 0 && k_gen_active == 0 then
-    k_pat_need_gen = 1
-  endif
-
-  ; --- Start generation if requested ---
-  if k_pat_need_gen == 1 && k_patmode > 1 then
-    k_gen_active = 1
-    k_gen_step = 0
-    k_gen_len = k_new_len
-    k_pat_ready = 0
-    k_pat_need_gen = 0
-  endif
-
-  ;==========================================================
-  ; PATTERN GENERATION STATE MACHINE (one step per k-cycle)
-  ;==========================================================
-  if k_gen_active == 1 then
-
-    ; Density check for this step
-    k_gen_roll random 0, 1
-    if k_gen_roll < k_dens then
-
-      ; Pick random scale degree
-      k_gdeg random 0, k_max_deg
-      k_gdeg = int(k_gdeg)
-      k_goct = int(k_gdeg / k_sc_len)
-      k_gdeg_sc = k_gdeg - k_goct * k_sc_len
-      k_gdeg_sc limit k_gdeg_sc, 0, k_sc_len - 1
-      k_gsemi tablekt k_gdeg_sc, k_sc_tab
-      k_gmidi = k_root + k_goct * 12 + k_gsemi
-
-      ; Octave jump
-      k_goct_roll random 0, 1
-      if k_goct_roll < k_octjump then
-        k_gmidi = k_gmidi + 12
-      endif
-      k_gmidi limit k_gmidi, 24, 108
-
-      ; Velocity
-      k_gacc random 0, 1
-      if k_gacc < k_accent then
-        k_gvel = k_velmax
-      else
-        k_gvel random k_velmin, k_velmax
-      endif
-
-      ; Store note and velocity
-      k_wt_pn = gi_pat_note
-      tablewkt k_gmidi, k_gen_step, k_wt_pn
-      k_wt_pv = gi_pat_vel
-      tablewkt k_gvel, k_gen_step, k_wt_pv
-
-      ; Double trigger (15%)
-      k_gdbl random 0, 1
-      if k_gdbl < 0.15 then
-        k_gdeg2 random 0, k_max_deg
-        k_gdeg2 = int(k_gdeg2)
-        k_goct2 = int(k_gdeg2 / k_sc_len)
-        k_gdeg2_sc = k_gdeg2 - k_goct2 * k_sc_len
-        k_gdeg2_sc limit k_gdeg2_sc, 0, k_sc_len - 1
-        k_gsemi2 tablekt k_gdeg2_sc, k_sc_tab
-        k_gmidi2 = k_root + k_goct2 * 12 + k_gsemi2
-        k_gmidi2 limit k_gmidi2, 24, 108
-        k_wt_pd = gi_pat_dbl
-        tablewkt k_gmidi2, k_gen_step, k_wt_pd
-      else
-        k_wt_pd = gi_pat_dbl
-        tablewkt 0, k_gen_step, k_wt_pd
-      endif
-
-    else
-      ; Rest step (density miss)
-      k_wt_pn = gi_pat_note
-      tablewkt 0, k_gen_step, k_wt_pn
-      k_wt_pv = gi_pat_vel
-      tablewkt 0, k_gen_step, k_wt_pv
-      k_wt_pd = gi_pat_dbl
-      tablewkt 0, k_gen_step, k_wt_pd
-    endif
-
-    k_gen_step = k_gen_step + 1
-    if k_gen_step >= k_gen_len then
-      k_gen_active = 0
-      k_pat_ready = 1
-      k_pat_step = 0
-      k_pat_rep = 0
-      k_pat_len = k_gen_len
-    endif
-
-  endif
-
-  ; --- Eighth-note metro with swing ---
-  ; Eighth note period = 60 / BPM / 2
-  k_eighth = 60 / k_bpm / 2
-
-  ; Step counter for swing (0=on-beat, 1=off-beat)
-  k_step init 0
-  k_next_time init 0
-
-  ; Time-based metro for swing support
-  k_time timeinsts
-  k_trig = 0
-
-  if k_time >= k_next_time then
-    k_trig = 1
-    ; Calculate next step time with swing
-    if k_step == 0 then
-      ; On-beat: next step gets swing delay
-      k_next_time = k_time + k_eighth * (1 + k_swing)
-    else
-      ; Off-beat: next step is normal minus swing
-      k_next_time = k_time + k_eighth * (1 - k_swing)
-    endif
-    k_step = 1 - k_step
-  endif
-
-  ; --- Note generation ---
-  if k_trig == 1 && k_play > 0.5 then
-
-    if k_patmode == 1 then
-      ;==========================================================
-      ; FREE MODE — random note each trigger (original behavior)
-      ;==========================================================
-
-      ; Roll against density
-      k_roll random 0, 1
-      if k_roll < k_dens then
-
-        ; --- Pick random scale degree ---
-        k_deg random 0, k_max_deg
-        k_deg = int(k_deg)
-
-        ; Convert degree to MIDI note
-        k_octave = int(k_deg / k_sc_len)
-        k_degree_in_scale = k_deg - k_octave * k_sc_len
-        k_degree_in_scale limit k_degree_in_scale, 0, k_sc_len - 1
-        k_semi tablekt k_degree_in_scale, k_sc_tab
-        k_midi_note = k_root + k_octave * 12 + k_semi
-
-        ; Oct jump
-        k_oct_roll random 0, 1
-        if k_oct_roll < k_octjump then
-          k_midi_note = k_midi_note + 12
-        endif
-        k_midi_note limit k_midi_note, 24, 108
-        k_freq = cpsmidinn(k_midi_note)
-
-        ; Velocity
-        k_acc_roll random 0, 1
-        if k_acc_roll < k_accent then
-          k_vel = k_velmax
-        else
-          k_vel random k_velmin, k_velmax
-        endif
-
-        ; Pan
-        k_pan random 0.2, 0.8
-
-        ; Polyphony check
-        k_active active 1
-        if k_active < 8 then
-          event "i", 1, 0, k_gate, k_freq, k_vel, k_pan
-        endif
-
-        ; Double trigger (15%)
-        k_dbl_roll random 0, 1
-        if k_dbl_roll < 0.15 && k_active < 7 then
-          k_deg2 random 0, k_max_deg
-          k_deg2 = int(k_deg2)
-          k_oct2 = int(k_deg2 / k_sc_len)
-          k_deg2_sc = k_deg2 - k_oct2 * k_sc_len
-          k_deg2_sc limit k_deg2_sc, 0, k_sc_len - 1
-          k_semi2 tablekt k_deg2_sc, k_sc_tab
-          k_midi2 = k_root + k_oct2 * 12 + k_semi2
-          k_midi2 limit k_midi2, 24, 108
-          k_freq2 = cpsmidinn(k_midi2)
-          k_vel2 random k_velmin, k_velmax
-          k_pan2 random 0.2, 0.8
-          event "i", 1, k_eighth * 0.5, k_gate, k_freq2, k_vel2, k_pan2
-        endif
-
-      endif ; density check
-
-    else
-      ;==========================================================
-      ; PATTERN MODE — play from pre-generated table
-      ;==========================================================
-
-      if k_pat_ready == 1 then
-        ; Read note from pattern table
-        k_wt_pn = gi_pat_note
-        k_p_midi tablekt k_pat_step, k_wt_pn
-
-        if k_p_midi > 0 then
-          k_p_freq = cpsmidinn(k_p_midi)
-
-          ; Read velocity from pattern table
-          k_wt_pv = gi_pat_vel
-          k_p_vel tablekt k_pat_step, k_wt_pv
-
-          ; Pan (fresh each playback for spatial variation)
-          k_p_pan random 0.2, 0.8
-
-          ; Polyphony check
-          k_active active 1
-          if k_active < 8 then
-            event "i", 1, 0, k_gate, k_p_freq, k_p_vel, k_p_pan
-          endif
-
-          ; Check for double trigger
-          k_wt_pd = gi_pat_dbl
-          k_p_dbl tablekt k_pat_step, k_wt_pd
-          if k_p_dbl > 0 && k_active < 7 then
-            k_p_freq2 = cpsmidinn(k_p_dbl)
-            k_p_vel2 random k_velmin, k_velmax
-            k_p_pan2 random 0.2, 0.8
-            event "i", 1, k_eighth * 0.5, k_gate, k_p_freq2, k_p_vel2, k_p_pan2
-          endif
-        endif
-
-        ; Advance step
-        k_pat_step = k_pat_step + 1
-        if k_pat_step >= k_pat_len then
-          k_pat_step = 0
-          k_pat_rep = k_pat_rep + 1
-          if k_pat_rep >= k_patrep then
-            k_pat_rep = 0
-            k_pat_need_gen = 1
-            k_pat_ready = 0
-          endif
-        endif
-      endif ; pat_ready
-
-    endif ; patmode check
-  endif ; trig + play check
-
-endin
+  xout k_midi
+endop
 
 
 ;==============================================================
@@ -760,8 +466,8 @@ endin
 ; envelopes for amp and mod (filter). Adapted from gen_pulse.
 ;
 ; p4 = frequency (Hz)
-; p5 = velocity (0–1)
-; p6 = pan (0–1)
+; p5 = velocity (0-1)
+; p6 = pan (0-1)
 ;==============================================================
 instr 1
 
@@ -805,7 +511,7 @@ instr 1
   k_vol   limit k_vol, 0, 1
 
   ; --- Amp envelope (squared linseg for exponential shape) ---
-  ; Attack → peak, decay → sustain, hold sustain for gate duration
+  ; Attack -> peak, decay -> sustain, hold sustain for gate duration
   i_hold = p3 - i_amp_a - i_amp_d
   i_hold = (i_hold < 0.01) ? 0.01 : i_hold
   k_aenv linseg 0, i_amp_a, 1, i_amp_d, i_amp_s, i_hold, i_amp_s
@@ -884,6 +590,572 @@ endin
 
 
 ;==============================================================
+; CONDUCTOR — instr 70
+;
+; Circle-of-fifths harmonic modulation engine.
+; Crossfades exactly 1 pitch class weight out and 1 in per step.
+; CW (sharps):  outgoing = (root_pc + 5) % 12, incoming = (root_pc + 6) % 12
+; CCW (flats):  outgoing = (root_pc + 11) % 12, incoming = (root_pc + 10) % 12
+;==============================================================
+instr 70
+
+  ; Key name lookup (Csound 6 doesn't have string arrays, use sprintfk)
+  ; CoF positions: 0=C 1=G 2=D 3=A 4=E 5=B 6=F# 7=C# 8=Ab 9=Eb 10=Bb 11=F
+
+  ; --- Read GUI parameters ---
+  k_start_key chnget "cond_start_key"  ; combobox 1-12
+  k_speed     chnget "cond_speed"      ; minutes per modulation
+  k_dir_sel   chnget "cond_dir"        ; 1=Sharps(CW), 2=Flats(CCW), 3=Random
+  k_enabled   chnget "cond_enabled"    ; 0=off, 1=on
+  k_manual    chnget "cond_manual"     ; button trigger
+
+  ; --- State ---
+  k_cof_pos     init 0     ; current position in circle (0-11)
+  k_xfade       init 0     ; crossfade progress 0..1
+  k_active      init 0     ; 1 = crossfade in progress
+  k_pc_out      init 0     ; pitch class fading out
+  k_pc_in       init 0     ; pitch class fading in
+  k_direction   init 1     ; +1 = CW (sharps), -1 = CCW (flats)
+  k_prev_key    init 1     ; previous start key combobox value (detect change)
+  k_initialized init 0
+
+  ; --- Initialize on first k-cycle ---
+  if k_initialized == 0 then
+    k_cof_pos = k_start_key - 1
+    k_prev_key = k_start_key
+    k_initialized = 1
+    ; Build initial weight table
+    event "i", 71, 0, 0.1, k_cof_pos
+  endif
+
+  ; --- Detect start key change from GUI ---
+  if k_start_key != k_prev_key then
+    k_cof_pos = k_start_key - 1
+    k_prev_key = k_start_key
+    k_xfade = 0
+    k_active = 0
+    ; Rebuild weight table for new key
+    event "i", 71, 0, 0.1, k_cof_pos
+  endif
+
+  ; --- Manual "Next" button ---
+  k_man_trig trigger k_manual, 0.5, 0
+  if k_man_trig == 1 then
+    chnset k(0), "cond_manual"
+    ; Start a crossfade if not already active
+    if k_active == 0 then
+      ; Determine direction
+      if k_dir_sel == 1 then
+        k_direction = 1
+      elseif k_dir_sel == 2 then
+        k_direction = -1
+      else
+        ; Random: coin flip
+        k_coin random 0, 1
+        k_direction = (k_coin < 0.5) ? 1 : -1
+      endif
+
+      ; Get current root pitch class from CoF table
+      k_wt_cof = gi_cof_pc
+      k_root_pc tablekt k_cof_pos, k_wt_cof
+
+      ; Compute outgoing/incoming pitch classes
+      if k_direction == 1 then
+        ; CW (sharps): sharp the 4th degree
+        k_pc_out = (k_root_pc + 5) % 12
+        k_pc_in  = (k_root_pc + 6) % 12
+      else
+        ; CCW (flats): flat the 7th degree
+        k_pc_out = (k_root_pc + 11) % 12
+        k_pc_in  = (k_root_pc + 10) % 12
+      endif
+
+      k_xfade = 0
+      k_active = 1
+    endif
+  endif
+
+  ; --- Auto-modulation when enabled ---
+  if k_enabled > 0.5 && k_active == 0 then
+    ; Determine direction
+    if k_dir_sel == 1 then
+      k_direction = 1
+    elseif k_dir_sel == 2 then
+      k_direction = -1
+    else
+      k_coin random 0, 1
+      k_direction = (k_coin < 0.5) ? 1 : -1
+    endif
+
+    ; Get current root pitch class from CoF table
+    k_wt_cof = gi_cof_pc
+    k_root_pc tablekt k_cof_pos, k_wt_cof
+
+    ; Compute outgoing/incoming pitch classes
+    if k_direction == 1 then
+      k_pc_out = (k_root_pc + 5) % 12
+      k_pc_in  = (k_root_pc + 6) % 12
+    else
+      k_pc_out = (k_root_pc + 11) % 12
+      k_pc_in  = (k_root_pc + 10) % 12
+    endif
+
+    k_xfade = 0
+    k_active = 1
+  endif
+
+  ; --- Crossfade engine ---
+  if k_active == 1 then
+    ; Increment crossfade
+    k_inc = (ksmps / sr) / (k_speed * 60)
+    k_xfade = k_xfade + k_inc
+
+    if k_xfade >= 1 then
+      k_xfade = 1
+      k_active = 0
+
+      ; Advance position in circle of fifths
+      k_cof_pos = (k_cof_pos + k_direction + 12) % 12
+    endif
+
+    ; Write weights to table (crossfade the two changing pitch classes)
+    k_wt = gi_weights
+    tablewkt (1 - k_xfade), k_pc_out, k_wt
+    tablewkt k_xfade, k_pc_in, k_wt
+  endif
+
+  ; --- GUI label updates (throttled to ~5 Hz) ---
+  k_gui_metro metro 5
+  if k_gui_metro == 1 then
+
+    ; Current key name label
+    ; Look up CoF position -> key name via sprintfk
+    k_kn = k_cof_pos
+    Skey = ""
+    if k_kn == 0 then
+      Skey = "C"
+    elseif k_kn == 1 then
+      Skey = "G"
+    elseif k_kn == 2 then
+      Skey = "D"
+    elseif k_kn == 3 then
+      Skey = "A"
+    elseif k_kn == 4 then
+      Skey = "E"
+    elseif k_kn == 5 then
+      Skey = "B"
+    elseif k_kn == 6 then
+      Skey = "F#"
+    elseif k_kn == 7 then
+      Skey = "C#"
+    elseif k_kn == 8 then
+      Skey = "Ab"
+    elseif k_kn == 9 then
+      Skey = "Eb"
+    elseif k_kn == 10 then
+      Skey = "Bb"
+    elseif k_kn == 11 then
+      Skey = "F"
+    endif
+
+    Slbl sprintfk {{text("Key: %s")}}, Skey
+    cabbageSet "cond_key_lbl", Slbl
+
+    ; Status label
+    if k_active == 1 then
+      ; Compute target key name
+      k_tgt = (k_cof_pos + k_direction + 12) % 12
+      Stgt = ""
+      if k_tgt == 0 then
+        Stgt = "C"
+      elseif k_tgt == 1 then
+        Stgt = "G"
+      elseif k_tgt == 2 then
+        Stgt = "D"
+      elseif k_tgt == 3 then
+        Stgt = "A"
+      elseif k_tgt == 4 then
+        Stgt = "E"
+      elseif k_tgt == 5 then
+        Stgt = "B"
+      elseif k_tgt == 6 then
+        Stgt = "F#"
+      elseif k_tgt == 7 then
+        Stgt = "C#"
+      elseif k_tgt == 8 then
+        Stgt = "Ab"
+      elseif k_tgt == 9 then
+        Stgt = "Eb"
+      elseif k_tgt == 10 then
+        Stgt = "Bb"
+      elseif k_tgt == 11 then
+        Stgt = "F"
+      endif
+
+      k_pct = int(k_xfade * 100)
+      Sstat sprintfk {{text("%s > %s [%d%%]")}}, Skey, Stgt, k_pct
+      cabbageSet "cond_status", Sstat
+    else
+      if k_enabled > 0.5 then
+        Sstat sprintfk {{text("%s (auto)")}}, Skey
+        cabbageSet "cond_status", Sstat
+      else
+        cabbageSet "cond_status", {{text("Idle")}}
+      endif
+    endif
+
+    ; Refresh gentable display
+    cabbageSet "cond_gt_ident", {{tableNumber(100)}}
+  endif
+
+endin
+
+
+;==============================================================
+; KEY RESET — instr 71
+;
+; Rebuilds the weight table for a given circle-of-fifths position.
+; p4 = CoF position (0-11)
+; Runs at i-time only, then turns off.
+;==============================================================
+instr 71
+
+  i_cof_pos = int(p4)
+
+  ; Get root pitch class from CoF table
+  i_root_pc tab_i i_cof_pos, gi_cof_pc
+
+  ; Clear all 12 weights to 0
+  i_idx = 0
+loop_clear:
+  tabw_i 0, i_idx, gi_weights
+  i_idx = i_idx + 1
+  if i_idx < 12 igoto loop_clear
+
+  ; Set major scale degrees to 1
+  i_deg = 0
+loop_set:
+  i_interval tab_i i_deg, gi_major_intervals
+  i_pc = (i_root_pc + i_interval) % 12
+  tabw_i 1, i_pc, gi_weights
+  i_deg = i_deg + 1
+  if i_deg < 7 igoto loop_set
+
+  turnoff
+
+endin
+
+
+;==============================================================
+; SEQUENCER — instr 80
+;
+; Probabilistic note generator with weighted random pitch selection.
+; Two modes:
+;   Free  — random note each trigger (original behavior)
+;   Pattern — generate a fixed pattern, repeat N times, regenerate
+;
+; Reads chromatic weight table (gi_weights) for scale-aware
+; note picking. Uses WeightedPC and PCtoMIDI UDOs.
+;==============================================================
+instr 80
+
+  ; --- Read sequencer parameters ---
+  k_play    chnget "seq_play"
+  k_bpm     chnget "seq_bpm"
+  k_swing   chnget "seq_swing"
+  k_dens_b  chnget "seq_density"
+  k_gate_b  chnget "seq_gate"
+  k_root    chnget "seq_root"
+  k_range_b chnget "seq_range"
+  k_octjump chnget "seq_octjump"
+  k_velmin  chnget "seq_velmin"
+  k_velmax  chnget "seq_velmax"
+  k_accent  chnget "seq_accent"
+
+  ; --- Pattern mode parameters ---
+  k_patmode chnget "seq_patmode"   ; 1=Free, 2=1bar, 3=2bars, 4=4bars
+  k_patrep  chnget "seq_patrep"   ; repeat count before regeneration
+
+  ; --- Apply LFO modulation ---
+  k_dens  = k_dens_b + gk_mod_density
+  k_range = k_range_b + gk_mod_range
+  k_gate  = k_gate_b + gk_mod_gate
+
+  ; --- Clamp modulated parameters ---
+  k_dens  limit k_dens, 0, 1
+  k_range limit k_range, 0.5, 4
+  k_gate  limit k_gate, 0.05, 5
+
+  ; --- Status display ---
+  if k_play > 0.5 then
+    chnset k_play, "seq_status_val"
+  endif
+
+  ;==========================================================
+  ; PATTERN STATE
+  ;==========================================================
+  k_pat_step     init 0    ; current step within pattern
+  k_pat_rep      init 0    ; current repeat count
+  k_pat_len      init 8    ; pattern length in steps
+  k_pat_ready    init 0    ; 1 = pattern valid for playback
+  k_pat_need_gen init 0    ; 1 = regeneration requested
+  k_gen_active   init 0    ; 1 = generating (one step per k-cycle)
+  k_gen_step     init 0    ; current generation step index
+  k_gen_len      init 8    ; generation target length
+  k_prev_patmode init 1    ; detect mode changes
+  k_prev_sk      init -1   ; detect start key changes
+
+  ; --- Calculate pattern length in steps (8 eighths per bar) ---
+  k_new_len = 8
+  if k_patmode == 3 then
+    k_new_len = 16
+  elseif k_patmode == 4 then
+    k_new_len = 32
+  endif
+
+  ; --- Detect mode change -> regenerate ---
+  if k_patmode != k_prev_patmode then
+    k_pat_need_gen = 1
+    k_pat_ready = 0
+    k_prev_patmode = k_patmode
+  endif
+
+  ; --- Detect start key change -> regenerate ---
+  k_sk chnget "cond_start_key"
+  if k_prev_sk < 0 then
+    k_prev_sk = k_sk
+  endif
+  if k_sk != k_prev_sk then
+    if k_patmode > 1 then
+      k_pat_need_gen = 1
+    endif
+    k_prev_sk = k_sk
+  endif
+
+  ; --- Stop generation if switched to free mode ---
+  if k_patmode == 1 && k_gen_active == 1 then
+    k_gen_active = 0
+  endif
+
+  ; --- Request initial generation for pattern mode ---
+  if k_patmode > 1 && k_pat_ready == 0 && k_gen_active == 0 then
+    k_pat_need_gen = 1
+  endif
+
+  ; --- Start generation if requested ---
+  if k_pat_need_gen == 1 && k_patmode > 1 then
+    k_gen_active = 1
+    k_gen_step = 0
+    k_gen_len = k_new_len
+    k_pat_ready = 0
+    k_pat_need_gen = 0
+  endif
+
+  ;==========================================================
+  ; PATTERN GENERATION STATE MACHINE (one step per k-cycle)
+  ;==========================================================
+  if k_gen_active == 1 then
+
+    ; Density check for this step
+    k_gen_roll random 0, 1
+    if k_gen_roll < k_dens then
+
+      ; Pick weighted random pitch class
+      k_gpc WeightedPC
+      if k_gpc >= 0 then
+        ; Convert to MIDI note
+        k_gmidi PCtoMIDI k_gpc, k_root, k_range, k_octjump
+
+        ; Velocity
+        k_gen_acc random 0, 1
+        if k_gen_acc < k_accent then
+          k_gvel = k_velmax
+        else
+          k_gvel random k_velmin, k_velmax
+        endif
+
+        ; Store note and velocity
+        k_wt_pn = gi_pat_note
+        tablewkt k_gmidi, k_gen_step, k_wt_pn
+        k_wt_pv = gi_pat_vel
+        tablewkt k_gvel, k_gen_step, k_wt_pv
+
+        ; Double trigger (15%)
+        k_gen_dbl random 0, 1
+        if k_gen_dbl < 0.15 then
+          k_gpc2 WeightedPC
+          if k_gpc2 >= 0 then
+            k_gmidi2 PCtoMIDI k_gpc2, k_root, k_range, 0
+            k_wt_pd = gi_pat_dbl
+            tablewkt k_gmidi2, k_gen_step, k_wt_pd
+          else
+            k_wt_pd = gi_pat_dbl
+            tablewkt 0, k_gen_step, k_wt_pd
+          endif
+        else
+          k_wt_pd = gi_pat_dbl
+          tablewkt 0, k_gen_step, k_wt_pd
+        endif
+
+      else
+        ; All weights zero — rest
+        k_wt_pn = gi_pat_note
+        tablewkt 0, k_gen_step, k_wt_pn
+        k_wt_pv = gi_pat_vel
+        tablewkt 0, k_gen_step, k_wt_pv
+        k_wt_pd = gi_pat_dbl
+        tablewkt 0, k_gen_step, k_wt_pd
+      endif
+
+    else
+      ; Rest step (density miss)
+      k_wt_pn = gi_pat_note
+      tablewkt 0, k_gen_step, k_wt_pn
+      k_wt_pv = gi_pat_vel
+      tablewkt 0, k_gen_step, k_wt_pv
+      k_wt_pd = gi_pat_dbl
+      tablewkt 0, k_gen_step, k_wt_pd
+    endif
+
+    k_gen_step = k_gen_step + 1
+    if k_gen_step >= k_gen_len then
+      k_gen_active = 0
+      k_pat_ready = 1
+      k_pat_step = 0
+      k_pat_rep = 0
+      k_pat_len = k_gen_len
+    endif
+
+  endif
+
+  ; --- Eighth-note metro with swing ---
+  k_eighth = 60 / k_bpm / 2
+
+  ; Step counter for swing (0=on-beat, 1=off-beat)
+  k_step init 0
+  k_next_time init 0
+
+  ; Time-based metro for swing support
+  k_time timeinsts
+  k_trig = 0
+
+  if k_time >= k_next_time then
+    k_trig = 1
+    if k_step == 0 then
+      k_next_time = k_time + k_eighth * (1 + k_swing)
+    else
+      k_next_time = k_time + k_eighth * (1 - k_swing)
+    endif
+    k_step = 1 - k_step
+  endif
+
+  ; --- Note generation ---
+  if k_trig == 1 && k_play > 0.5 then
+
+    if k_patmode == 1 then
+      ;==========================================================
+      ; FREE MODE — random note each trigger (original behavior)
+      ;==========================================================
+
+      ; Roll against density
+      k_roll random 0, 1
+      if k_roll < k_dens then
+
+        k_pc WeightedPC
+        if k_pc >= 0 then
+          k_midi_note PCtoMIDI k_pc, k_root, k_range, k_octjump
+          k_freq = cpsmidinn(k_midi_note)
+
+          ; Velocity
+          k_acc_roll random 0, 1
+          if k_acc_roll < k_accent then
+            k_vel = k_velmax
+          else
+            k_vel random k_velmin, k_velmax
+          endif
+
+          ; Pan
+          k_pan random 0.2, 0.8
+
+          ; Polyphony check
+          k_active active 1
+          if k_active < 8 then
+            event "i", 1, 0, k_gate, k_freq, k_vel, k_pan
+          endif
+
+          ; Double trigger (15%)
+          k_dbl_roll random 0, 1
+          if k_dbl_roll < 0.15 && k_active < 7 then
+            k_pc2 WeightedPC
+            if k_pc2 >= 0 then
+              k_midi2 PCtoMIDI k_pc2, k_root, k_range, 0
+              k_freq2 = cpsmidinn(k_midi2)
+              k_vel2 random k_velmin, k_velmax
+              k_pan2 random 0.2, 0.8
+              event "i", 1, k_eighth * 0.5, k_gate, k_freq2, k_vel2, k_pan2
+            endif
+          endif
+
+        endif ; k_pc >= 0
+      endif ; density check
+
+    else
+      ;==========================================================
+      ; PATTERN MODE — play from pre-generated table
+      ;==========================================================
+
+      if k_pat_ready == 1 then
+        ; Read note from pattern table
+        k_wt_pn = gi_pat_note
+        k_p_midi tablekt k_pat_step, k_wt_pn
+
+        if k_p_midi > 0 then
+          k_p_freq = cpsmidinn(k_p_midi)
+
+          ; Read velocity from pattern table
+          k_wt_pv = gi_pat_vel
+          k_p_vel tablekt k_pat_step, k_wt_pv
+
+          ; Pan (fresh each playback for spatial variation)
+          k_p_pan random 0.2, 0.8
+
+          ; Polyphony check
+          k_active active 1
+          if k_active < 8 then
+            event "i", 1, 0, k_gate, k_p_freq, k_p_vel, k_p_pan
+          endif
+
+          ; Check for double trigger
+          k_wt_pd = gi_pat_dbl
+          k_p_dbl tablekt k_pat_step, k_wt_pd
+          if k_p_dbl > 0 && k_active < 7 then
+            k_p_freq2 = cpsmidinn(k_p_dbl)
+            k_p_vel2 random k_velmin, k_velmax
+            k_p_pan2 random 0.2, 0.8
+            event "i", 1, k_eighth * 0.5, k_gate, k_p_freq2, k_p_vel2, k_p_pan2
+          endif
+        endif
+
+        ; Advance step
+        k_pat_step = k_pat_step + 1
+        if k_pat_step >= k_pat_len then
+          k_pat_step = 0
+          k_pat_rep = k_pat_rep + 1
+          if k_pat_rep >= k_patrep then
+            k_pat_rep = 0
+            k_pat_need_gen = 1
+            k_pat_ready = 0
+          endif
+        endif
+      endif ; pat_ready
+
+    endif ; patmode check
+  endif ; trig + play check
+
+endin
+
+
+;==============================================================
 ; ROOT NOTE CAPTURE — instr 85
 ;
 ; Receives MIDI from keyboard widget, sets seq_root channel,
@@ -899,10 +1171,68 @@ endin
 
 
 ;==============================================================
+; MODULATOR — instr 90
+;
+; 4 LFOs with selectable waveform and routable target.
+; Each LFO: Freq, Amp, Wave (dropdown), Target (dropdown).
+; Amp defaults to 0 = off. Raise to activate.
+;==============================================================
+instr 90
+
+  ; --- Reset all mod accumulators ---
+  gk_mod_cutoff  = 0
+  gk_mod_reso    = 0
+  gk_mod_shape   = 0
+  gk_mod_density = 0
+  gk_mod_range   = 0
+  gk_mod_gate    = 0
+  gk_mod_vol     = 0
+
+  ; --- LFO 1 ---
+  k_frq1  chnget "lfo1_freq"
+  k_amp1  chnget "lfo1_amp"
+  k_wav1  chnget "lfo1_wave"
+  k_tgt1  chnget "lfo1_target"
+  k_val1  LFOWave k_amp1, k_frq1, k_wav1
+  LFORoutePluck k_tgt1, k_val1
+  cabbageSetValue "lfo1_out", k_val1
+
+  ; --- LFO 2 ---
+  k_frq2  chnget "lfo2_freq"
+  k_amp2  chnget "lfo2_amp"
+  k_wav2  chnget "lfo2_wave"
+  k_tgt2  chnget "lfo2_target"
+  k_val2  LFOWave k_amp2, k_frq2, k_wav2
+  LFORoutePluck k_tgt2, k_val2
+  cabbageSetValue "lfo2_out", k_val2
+
+  ; --- LFO 3 ---
+  k_frq3  chnget "lfo3_freq"
+  k_amp3  chnget "lfo3_amp"
+  k_wav3  chnget "lfo3_wave"
+  k_tgt3  chnget "lfo3_target"
+  k_val3  LFOWave k_amp3, k_frq3, k_wav3
+  LFORoutePluck k_tgt3, k_val3
+  cabbageSetValue "lfo3_out", k_val3
+
+  ; --- LFO 4 ---
+  k_frq4  chnget "lfo4_freq"
+  k_amp4  chnget "lfo4_amp"
+  k_wav4  chnget "lfo4_wave"
+  k_tgt4  chnget "lfo4_target"
+  k_val4  LFOWave k_amp4, k_frq4, k_wav4
+  LFORoutePluck k_tgt4, k_val4
+  cabbageSetValue "lfo4_out", k_val4
+
+endin
+
+
+;==============================================================
 ; PRESET MANAGER — instr 95
 ;
 ; Save/Load all channel values to/from JSON file.
 ; Uses channelStateSave / channelStateRecall opcodes.
+; Includes conductor channels in SYNC list.
 ;==============================================================
 instr 95
 
@@ -914,11 +1244,11 @@ instr 95
   k_gui_delay   init 0
 
   ; Auto-load last saved preset on startup (if file exists)
-  i_exists filevalid "/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json"
+  i_exists filevalid "/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/cof-rig-preset.json"
   k_init init 0
   if k_init == 0 && i_exists == 1 then
-    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
-    printks "Auto-loaded preset from sequencer-rig-preset.json\\n", 0
+    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/cof-rig-preset.json")
+    printks "Auto-loaded preset from cof-rig-preset.json\\n", 0
     k_gui_refresh = 1
     k_init = 1
   elseif k_init == 0 then
@@ -929,15 +1259,15 @@ instr 95
   k_ld trigger k_load, 0.5, 0
 
   if k_sv == 1 then
-    kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
+    kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/cof-rig-preset.json")
     chnset k(0), "preset_save"
-    printks "Preset saved to sequencer-rig-preset.json\\n", 0
+    printks "Preset saved to cof-rig-preset.json\\n", 0
   endif
 
   if k_ld == 1 then
-    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/sequencer-rig-preset.json")
+    kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/cof-rig-preset.json")
     chnset k(0), "preset_load"
-    printks "Preset loaded from sequencer-rig-preset.json\\n", 0
+    printks "Preset loaded from cof-rig-preset.json\\n", 0
     k_gui_refresh = 1
   endif
 
@@ -954,20 +1284,19 @@ instr 95
       $SYNC_LFO(3)
       $SYNC_LFO(4)
 
-      ; Sync rig-specific widgets
+      ; Sync sequencer widgets
       $SYNC_WIDGET(seq_bpm)
       $SYNC_WIDGET(seq_swing)
       $SYNC_WIDGET(seq_density)
       $SYNC_WIDGET(seq_gate)
       $SYNC_WIDGET(seq_root)
-      $SYNC_WIDGET(seq_scale)
-      $SYNC_WIDGET(seq_patmode)
-      $SYNC_WIDGET(seq_patrep)
       $SYNC_WIDGET(seq_range)
       $SYNC_WIDGET(seq_octjump)
       $SYNC_WIDGET(seq_velmin)
       $SYNC_WIDGET(seq_velmax)
       $SYNC_WIDGET(seq_accent)
+
+      ; Sync synth widgets
       $SYNC_WIDGET(osc_shape)
       $SYNC_WIDGET(osc_detune)
       $SYNC_WIDGET(osc_sub)
@@ -978,6 +1307,8 @@ instr 95
       $SYNC_WIDGET(amp_a)
       $SYNC_WIDGET(amp_d)
       $SYNC_WIDGET(amp_s)
+
+      ; Sync effect widgets
       $SYNC_WIDGET(dly_div)
       $SYNC_WIDGET(dly_fb)
       $SYNC_WIDGET(dly_mix)
@@ -992,6 +1323,20 @@ instr 95
       $SYNC_WIDGET(rvb_send)
       $SYNC_WIDGET(dly_rvb_send)
       $SYNC_WIDGET(seq_play)
+
+      ; Sync pattern widgets
+      $SYNC_WIDGET(seq_patmode)
+      $SYNC_WIDGET(seq_patrep)
+
+      ; Sync conductor/harmony widgets
+      $SYNC_WIDGET(cond_start_key)
+      $SYNC_WIDGET(cond_speed)
+      $SYNC_WIDGET(cond_dir)
+      $SYNC_WIDGET(cond_enabled)
+
+      ; Rebuild weight table for recalled key
+      k_sk chnget "cond_start_key"
+      event "i", 71, 0, 0.1, k_sk - 1
     endif
   endif
 
@@ -1015,7 +1360,6 @@ instr 98
   k_rvb_send chnget "dly_rvb_send"
 
   ; --- BPM-synced delay time from note division ---
-  ; Quarter note = 60/BPM
   k_quarter = 60 / k_bpm
 
   ; 1=1/2, 2=1/4, 3=D.1/8, 4=1/8, 5=1/16, 6=T.1/4, 7=T.1/8
@@ -1095,10 +1439,12 @@ endin
 
 </CsInstruments>
 <CsScore>
-; Score order: LFOs -> sequencer -> delay -> reverb
+; Score order: conductor -> LFOs -> sequencer -> preset -> delay -> reverb
+; Conductor (70) runs first to update weight table before sequencer reads it
 ; Pluck voices (instr 1) are event-triggered by sequencer
+i 70 0 [60*60*4]   ; circle-of-fifths conductor
 i 90 0 [60*60*4]   ; LFO modulator
-i 80 0 [60*60*4]   ; probabilistic sequencer
+i 80 0 [60*60*4]   ; probabilistic sequencer (weighted random)
 i 95 0 [60*60*4]   ; preset manager
 i 98 0 [60*60*4]   ; ping-pong delay
 i 99 0 [60*60*4]   ; reverb
