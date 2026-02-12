@@ -666,6 +666,7 @@ instr 95
   k_init init 0
   if k_init == 0 && i_exists == 1 then
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/tanpura-drone-rig-preset.json")
+    chnset k(0), "preset_save"   ; prevent recall from triggering a save
     printks "Auto-loaded preset from tanpura-drone-rig-preset.json\\n", 0
     k_gui_refresh = 1
     k_init = 1
@@ -676,7 +677,28 @@ instr 95
   k_sv trigger k_save, 0.5, 0
   k_ld trigger k_load, 0.5, 0
 
+  ; Delayed save: sync combobox widgets from channels first,
+  ; then wait for guiMode("queue") to process before saving.
+  k_save_delay init -1
+
   if k_sv == 1 then
+    $SYNC_WIDGET(lfo1_target)
+    $SYNC_WIDGET(lfo2_target)
+    $SYNC_WIDGET(lfo3_target)
+    $SYNC_WIDGET(lfo4_target)
+    $SYNC_WIDGET(lfo1_wave)
+    $SYNC_WIDGET(lfo2_wave)
+    $SYNC_WIDGET(lfo3_wave)
+    $SYNC_WIDGET(lfo4_wave)
+    $SYNC_WIDGET(env_loop)
+    $SYNC_WIDGET(mod_env_target)
+    k_save_delay = 2
+  endif
+
+  if k_save_delay > 0 then
+    k_save_delay -= 1
+  elseif k_save_delay == 0 then
+    k_save_delay = -1
     kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/tanpura-drone-rig-preset.json")
     chnset k(0), "preset_save"
     printks "Preset saved to tanpura-drone-rig-preset.json\\n", 0
@@ -685,6 +707,7 @@ instr 95
   if k_ld == 1 then
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/tanpura-drone-rig-preset.json")
     chnset k(0), "preset_load"
+    chnset k(0), "preset_save"   ; prevent recall from triggering a save
     printks "Preset loaded from tanpura-drone-rig-preset.json\\n", 0
     k_gui_refresh = 1
   endif

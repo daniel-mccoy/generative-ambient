@@ -1248,6 +1248,7 @@ instr 95
   k_init init 0
   if k_init == 0 && i_exists == 1 then
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/cof-rig-preset.json")
+    chnset k(0), "preset_save"   ; prevent recall from triggering a save
     printks "Auto-loaded preset from cof-rig-preset.json\\n", 0
     k_gui_refresh = 1
     k_init = 1
@@ -1293,6 +1294,7 @@ instr 95
   if k_ld == 1 then
     kOk = cabbageChannelStateRecall:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/cof-rig-preset.json")
     chnset k(0), "preset_load"
+    chnset k(0), "preset_save"   ; prevent recall from triggering a save
     printks "Preset loaded from cof-rig-preset.json\\n", 0
     k_gui_refresh = 1
   endif
