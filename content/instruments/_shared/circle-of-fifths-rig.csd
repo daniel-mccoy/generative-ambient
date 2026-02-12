@@ -1258,7 +1258,33 @@ instr 95
   k_sv trigger k_save, 0.5, 0
   k_ld trigger k_load, 0.5, 0
 
+  ; Delayed save: sync combobox widgets from channels first,
+  ; then wait for guiMode("queue") to process before saving.
+  ; cabbageChannelStateSave reads WIDGET state, not channel values,
+  ; so comboboxes must be synced via cabbageSetValue beforehand.
+  k_save_delay init -1
+
   if k_sv == 1 then
+    ; Force-sync all combobox widgets from their channel values
+    $SYNC_WIDGET(lfo1_target)
+    $SYNC_WIDGET(lfo2_target)
+    $SYNC_WIDGET(lfo3_target)
+    $SYNC_WIDGET(lfo4_target)
+    $SYNC_WIDGET(lfo1_wave)
+    $SYNC_WIDGET(lfo2_wave)
+    $SYNC_WIDGET(lfo3_wave)
+    $SYNC_WIDGET(lfo4_wave)
+    $SYNC_WIDGET(cond_start_key)
+    $SYNC_WIDGET(cond_dir)
+    $SYNC_WIDGET(seq_patmode)
+    $SYNC_WIDGET(dly_div)
+    k_save_delay = 2
+  endif
+
+  if k_save_delay > 0 then
+    k_save_delay -= 1
+  elseif k_save_delay == 0 then
+    k_save_delay = -1
     kOk = cabbageChannelStateSave:k("/Users/daniel/PycharmProjects/generative-ambient/content/instruments/_shared/cof-rig-preset.json")
     chnset k(0), "preset_save"
     printks "Preset saved to cof-rig-preset.json\\n", 0
@@ -1274,15 +1300,27 @@ instr 95
   ; --- GUI refresh: sync widget visuals after preset recall ---
   if k_gui_refresh == 1 then
     k_gui_delay += 1
-    if k_gui_delay >= 5 then
+    if k_gui_delay >= 15 then
       k_gui_refresh = 0
       k_gui_delay   = 0
 
-      ; Sync LFOs
-      $SYNC_LFO(1)
-      $SYNC_LFO(2)
-      $SYNC_LFO(3)
-      $SYNC_LFO(4)
+      ; Sync LFO widgets (explicit per-channel instead of macro)
+      $SYNC_WIDGET(lfo1_freq)
+      $SYNC_WIDGET(lfo1_amp)
+      $SYNC_WIDGET(lfo1_wave)
+      $SYNC_WIDGET(lfo1_target)
+      $SYNC_WIDGET(lfo2_freq)
+      $SYNC_WIDGET(lfo2_amp)
+      $SYNC_WIDGET(lfo2_wave)
+      $SYNC_WIDGET(lfo2_target)
+      $SYNC_WIDGET(lfo3_freq)
+      $SYNC_WIDGET(lfo3_amp)
+      $SYNC_WIDGET(lfo3_wave)
+      $SYNC_WIDGET(lfo3_target)
+      $SYNC_WIDGET(lfo4_freq)
+      $SYNC_WIDGET(lfo4_amp)
+      $SYNC_WIDGET(lfo4_wave)
+      $SYNC_WIDGET(lfo4_target)
 
       ; Sync sequencer widgets
       $SYNC_WIDGET(seq_bpm)
