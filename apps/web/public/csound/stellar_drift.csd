@@ -1470,6 +1470,10 @@ instr 97
   chnset k_morph_n, "swarm_lfo"
   chnset k_plk_r, "pluck_rms"
 
+  ; Key position for shader (normalized 0-1, smoothed for gradual camera shift)
+  k_key_n port gk_cof_pos / 12.0, 3.0
+  chnset k_key_n, "key_pos"
+
   ; Reset accumulators
   gk_pluck_rms = 0
   gk_pad_rms = 0

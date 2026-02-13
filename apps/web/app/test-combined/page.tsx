@@ -16,6 +16,7 @@ const SHADER_FILES = [
   { name: "abyss.frag", label: "Abyss" },
   { name: "corridors.frag", label: "Corridors" },
   { name: "wormhole.frag", label: "Wormhole" },
+  { name: "starnest.frag", label: "Star Nest" },
 ];
 
 const CSD_FILES: Array<{
@@ -102,7 +103,7 @@ export default function TestCombinedPage() {
   // Per-instrument Csound channel values (polled non-blocking)
   const CSOUND_CHANNELS = [
     "bass_rms", "bass_cutoff", "pad_rms", "pad_pulse",
-    "swarm_rms", "swarm_lfo", "pluck_rms",
+    "swarm_rms", "swarm_lfo", "pluck_rms", "key_pos",
   ] as const;
   const channelRefs = useRef<Record<string, number>>(
     Object.fromEntries(CSOUND_CHANNELS.map((n) => [n, 0])),
@@ -269,7 +270,7 @@ export default function TestCombinedPage() {
           debugRef.current.textContent =
             `Bass: ${bassRef.current.toFixed(3)}  Mid: ${midRef.current.toFixed(3)}  High: ${highRef.current.toFixed(3)}\n` +
             `bass_rms: ${ch.bass_rms.toFixed(3)}  bass_cut: ${ch.bass_cutoff.toFixed(3)}  pad_rms: ${ch.pad_rms.toFixed(3)}  pad_pulse: ${ch.pad_pulse.toFixed(3)}\n` +
-            `swarm_rms: ${ch.swarm_rms.toFixed(3)}  swarm_lfo: ${ch.swarm_lfo.toFixed(3)}  pluck_rms: ${ch.pluck_rms.toFixed(3)}`;
+            `swarm_rms: ${ch.swarm_rms.toFixed(3)}  swarm_lfo: ${ch.swarm_lfo.toFixed(3)}  pluck_rms: ${ch.pluck_rms.toFixed(3)}  key: ${ch.key_pos.toFixed(3)}`;
         }
 
         const time = performance.now() / 1000 - startTimeRef.current;
