@@ -11,6 +11,11 @@ const SHADER_FILES = [
   { name: "ocean.frag", label: "Ocean" },
   { name: "galaxy.frag", label: "Galaxy" },
   { name: "aurora.frag", label: "Aurora Borealis" },
+  { name: "nebula.frag", label: "Nebula" },
+  { name: "singularity.frag", label: "Singularity" },
+  { name: "abyss.frag", label: "Abyss" },
+  { name: "corridors.frag", label: "Corridors" },
+  { name: "wormhole.frag", label: "Wormhole" },
 ];
 
 const CSD_FILES: Array<{
