@@ -125,6 +125,7 @@ export default function TestCombinedPage() {
   const [status, setStatus] = useState("Ready");
   const [playing, setPlaying] = useState(false);
   const [showUI, setShowUI] = useState(true);
+  const [volume, setVolume] = useState(1.0);
 
   // Smoothing factor for exponential smoothing on top of AnalyserNode
   const SMOOTH = 0.3;
@@ -565,6 +566,24 @@ export default function TestCombinedPage() {
                 </option>
               ))}
             </select>
+          </label>
+
+          {/* Volume */}
+          <label className="flex flex-col gap-1">
+            <span className="text-xs text-neutral-400">Volume: {volume.toFixed(2)}</span>
+            <input
+              type="range"
+              min="0"
+              max="1"
+              step="0.01"
+              value={volume}
+              onChange={(e) => {
+                const v = parseFloat(e.target.value);
+                setVolume(v);
+                csoundRef.current?.setControlChannel("master_vol", v);
+              }}
+              className="w-full accent-neutral-400"
+            />
           </label>
 
           {/* Play/Stop */}

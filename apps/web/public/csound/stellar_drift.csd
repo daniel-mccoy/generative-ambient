@@ -226,19 +226,19 @@ instr 10
 
   ; Pluck
   chnset 1, "plk_play"
-  chnset 0.59, "plk_vol"
+  chnset 1.0, "plk_vol"
   chnset 0.82, "plk_dly_send"
   chnset 0.35, "plk_rvb_send"
 
   ; FM Drone
   chnset 1, "fm_play"
-  chnset 0.18, "fm_vol"
+  chnset 0.31, "fm_vol"
   chnset 0.25, "fm_dly_send"
   chnset 0.74, "fm_rvb_send"
 
   ; Pad Chords
   chnset 1, "pad_play"
-  chnset 0.32, "pad_vol"
+  chnset 0.54, "pad_vol"
   chnset 0.25, "pad_dly_send"
   chnset 0.79, "pad_rvb_send"
 
@@ -249,7 +249,7 @@ instr 10
   chnset 1, "cond_enabled"
 
   ; Master
-  chnset 0.7, "master_vol"
+  chnset 1.0, "master_vol"
   chnset 12000, "master_lpf"
   chnset 0.3, "warmth"
 
@@ -313,7 +313,9 @@ instr 90
   ; === PLUCK LFOs ===
   k_pw1a randi 1, 0.03
   k_pw1b randi 0.5, 0.03 * 0.4286
-  k_plk_cut = (k_pw1a + k_pw1b) / 1.5
+  k_plk_cut_raw = (k_pw1a + k_pw1b) / 1.5
+  k_plk_fade linseg 0, 25, 1
+  k_plk_cut = -1.0 * (1.0 - k_plk_fade) + k_plk_cut_raw * k_plk_fade
 
   k_plk_reso_phs phasor 0.02
   k_plk_reso = (1 - 4 * abs(k_plk_reso_phs - 0.5)) * 0.18
