@@ -40,9 +40,9 @@ void main() {
     float speed = BPM / 32000.0;
     float time = u_time * speed + 0.25;
 
-    // Viewing angle shifts with circle-of-fifths key position
-    float a1 = 0.5 + u_key_pos * 0.4;
-    float a2 = 0.8 + sin(u_key_pos * 6.283) * 0.15;
+    // Key changes rotation — shifts the drift direction (original mouse range: 2.0 rad)
+    float a1 = 0.5 + u_key_pos * 2.0;
+    float a2 = 0.8;
     mat2 rot1 = mat2(cos(a1), sin(a1), -sin(a1), cos(a1));
     mat2 rot2 = mat2(cos(a2), sin(a2), -sin(a2), cos(a2));
     dir.xz = dir.xz * rot1;

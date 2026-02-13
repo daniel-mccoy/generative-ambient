@@ -88,7 +88,7 @@ gk_pad_pulse init 0
 ;=====================================================================
 ; PER-INSTRUMENT MODULATION ACCUMULATORS
 ;=====================================================================
-gk_plk_mod_cutoff  init 0
+gk_plk_mod_cutoff  init -4000
 gk_plk_mod_reso    init 0
 gk_plk_mod_shape   init 0
 gk_plk_mod_density init 0
@@ -244,7 +244,7 @@ instr 10
 
   ; Conductor
   chnset 1, "cond_start_key"
-  chnset 3, "cond_speed"
+  chnset 1, "cond_speed"
   chnset 1, "cond_dir"
   chnset 1, "cond_enabled"
 
@@ -342,7 +342,7 @@ instr 90
   gk_plk_mod_density = k_plk_den * 0.3
 
   ; === FM DRONE LFOs ===
-  k_fm_cut_phs phasor 0.02
+  k_fm_cut_phs phasor 0.02, 0.75
   k_fm_cut = sin(k_fm_cut_phs * 6.28318530718)
 
   k_fm_reso_phs phasor 0.02
@@ -352,7 +352,7 @@ instr 90
   gk_fm_mod_reso   = k_fm_reso * 0.3
 
   ; === PAD LFOs ===
-  k_pad_mrph_phs phasor 0.02
+  k_pad_mrph_phs phasor 0.02, 0.75
   k_pad_mrph = sin(k_pad_mrph_phs * 6.28318530718)
 
   k_pad_w2a randi 1, 0.03
@@ -1471,7 +1471,7 @@ instr 97
   chnset k_plk_r, "pluck_rms"
 
   ; Key position for shader (normalized 0-1, smoothed for gradual camera shift)
-  k_key_n port gk_cof_pos / 12.0, 3.0
+  k_key_n port gk_cof_pos / 12.0, 10.0
   chnset k_key_n, "key_pos"
 
   ; Reset accumulators
