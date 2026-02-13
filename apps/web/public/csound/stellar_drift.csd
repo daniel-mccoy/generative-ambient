@@ -1473,7 +1473,7 @@ instr 97
   chnset k_plk_r, "pluck_rms"
 
   ; Key position for shader (normalized 0-1, smoothed for gradual camera shift)
-  k_key_n port gk_cof_pos / 12.0, 10.0
+  k_key_n port gk_cof_pos / 12.0, 5.0
   chnset k_key_n, "key_pos"
 
   ; Reset accumulators
