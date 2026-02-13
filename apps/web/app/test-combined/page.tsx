@@ -39,6 +39,14 @@ const CSD_FILES: Array<{
       { url: "/samples/padsynth-b.wav", filename: "padsynth-b.wav" },
     ],
   },
+  {
+    name: "stellar_drift.csd",
+    label: "Stellar Drift",
+    samples: [
+      { url: "/samples/padsynth-export-a.wav", filename: "padsynth-export-a.wav" },
+      { url: "/samples/padsynth-export-b.wav", filename: "padsynth-export-b.wav" },
+    ],
+  },
 ];
 
 const VERTEX_SHADER = `

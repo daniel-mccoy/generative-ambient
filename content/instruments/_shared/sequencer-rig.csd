@@ -838,9 +838,8 @@ instr 1
   a_osc = a_osc + a_sub
 
   ; --- Filter ---
-  ; Velocity-driven brightness: higher velocity opens filter
-  k_vel_bright = ivel * 2000
-  k_filt_cut = k_cut + k_menv * k_envamt * 8000 + k_vel_bright
+  ; Envelope sweeps from base cutoff; velocity adds subtle brightness
+  k_filt_cut = k_cut + k_menv * k_envamt * (k_cut * 4) + ivel * 400
   k_filt_cut limit k_filt_cut, 60, 18000
 
   a_filt moogladder a_osc, k_filt_cut, k_reso
